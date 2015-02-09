@@ -3953,19 +3953,6 @@
 		return $wordArray;
 	}
 	
-	function redirect($to) {
-		@session_write_close();
-		if (!headers_sent()) {
-			header("Location: $to");
-			flush();
-			exit();
-			} else {
-			print "<html><head><META http-equiv='refresh' content='0;URL=$to'></head><body><a href='$to'>$to</a></body></html>";
-			flush();
-			exit();
-		}
-	}
-	
 	function create_rules_from_ini($ini_array) {
 		
 		$rulesOptions = array("Case_insensitive", "higher_than", "exclude", "longer_than", "max");
