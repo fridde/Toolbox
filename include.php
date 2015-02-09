@@ -1,5 +1,3 @@
-<?php
-
 echo "Hello";
 
 function easy(){
@@ -20,5 +18,3 @@ foreach($cdnFiles as $index => $cdnFile) {
   $includeFile = (file_exists($cdnFile) ? $cdnFile : $altFiles[$index]);
   include $includeFile;	
 }
-
-?>	
