@@ -2,6 +2,11 @@
 
 echo "Hello";
 
+function easy(){
+	return "I work!";
+	
+}
+
 $cdnFiles = 	array(
   "https://cdn.rawgit.com/fridde/friddes_php_functions/master/functions.php",
   "https://cdn.rawgit.com/fridde/friddes_php_functions/master/sql_functions.php"
