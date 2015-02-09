@@ -1,0 +1,4051 @@
+<?php
+
+function redirect($to) {
+		@session_write_close();
+		if (!headers_sent()) {
+			header("Location: $to");
+			flush();
+			exit();
+			} else {
+			print "<html><head><META http-equiv='refresh' content='0;URL=$to'></head><body><a href='$to'>$to</a></body></html>";
+			flush();
+			exit();
+		}
+	}
+	
+	function create_download($source, $filename = "export.ris") {
+		
+		$f = fopen('php://memory', 'w+');
+		fwrite($f, $source);
+		fseek($f, 0);
+		
+		header('Content-Type: text/plain');
+		header('Content-Disposition: attachment; filename="' . $filename . '"');
+		// make php send the generated lines to the browser
+		fpassthru($f);
+	}
+	
+	function sql_insert_array($array, $sqlTable, $maxString = 5000) {
+		
+		//echo print_r($array);
+		if (count($array) < 1) {
+			echo "Empty array given! <br>";
+			return;
+		}
+		
+		$headers = array_keys(reset($array));
+		//echo print_r($headers);
+		$queryStart = "INSERT INTO " . $sqlTable . " (" . implode(" , ", $headers) . ") VALUES ";
+		$query = "";
+		
+		foreach ($array as $rowKey => $row) {
+			$newRow = array();
+			foreach ($row as $colKey => $cell) {
+				switch ($colKey) {
+					case "id" :
+                    // we let MySQL decide the new id
+                    $newRow[$colKey] = "";
+                    break;
+					default :
+                    $newRow[$colKey] = addslashes($cell);
+				}
+			}
+			$newRow = "('" . implode("' , '", $newRow) . "'),";
+			
+			$query .= $newRow;
+			
+			if (strlen($query) > $maxString) {
+				$totalQuery = $queryStart . rtrim($query, ",") . ";";
+				
+				ORM::for_table($sqlTable)->raw_execute($totalQuery);
+				$query = "";
+			}
+		}
+		//add the rest
+		if (strlen($query) > 2) {
+			$totalQuery = $queryStart . rtrim($query, ",") . ";";
+			
+			ORM::for_table($sqlTable)->raw_execute($totalQuery);
+		}
+	}
+	
+	function array_change_col_names($array, $translationArray) {
+		/* takes an array simulating a table in the format
+			* array(
+			*   row1 => array(nameCol1 => valueRow1Col1, nameCol2 => valueRow1Col2, ...),
+			*   row2 => array(nameCol1 => valueRow2Col1, nameCol2 => valueRow2Col2, ...),
+			*   ...
+			* )
+			* and exchanges the columnnames according to the translationArray in the format
+			* array(
+			*   oldColName1 => newColName1, oldColName2 => newColName2, ...
+			* )
+		*/
+		$newArray = array();
+		foreach ($array as $rowIndex => $row) {
+			$newRow = array();
+			foreach ($row as $colName => $value) {
+				if (isset($translationArray[$colName])) {
+					$newRow[$translationArray[$colName]] = $value;
+					} else {
+					$newRow[$colName] = $value;
+				}
+			}
+			$newArray[$rowIndex] = $newRow;
+		}
+		
+		return $newArray;
+	}
+	
+	function clean_sql($string) {
+		
+		$search = array("\'");
+		$replace = array("\'\'");
+		
+		$string = str_replace($search, $replace, $string);
+		
+		return $string;
+	}
+	
+	function convert_date($date) {
+		
+		$year = substr($date, 0, 4);
+		$month = substr($date, 4, 2);
+		$day = substr($date, 6, 2);
+		
+		$date = $year . "-" . $month . "-" . $day;
+		
+		return $date;
+	}
+	
+	function create_htmltable_from_array($array, $givenPasswords, $truePasswords) {
+		
+		$colNames = array_keys(reset($array));
+		$html = '<table id="sortable" class="display stripe">';
+		$html .= "<thead>
+        <tr>";
+		foreach ($colNames as $colname) {
+			if ($colname != "id") {
+				$html .= "<th>" . strtoupper($colname) . "</th>";
+			}
+		}
+		
+		$html .= "</tr>
+        </thead>
+        <tbody>";
+		foreach ($array as $rowIndex => $row) {
+			$filterTags = $row["tags"];
+			if (check_inclusion_according_to_tag($row, $filterTags, $givenPasswords, $truePasswords)) {
+				$html .= "<tr>";
+				foreach ($row as $colIndex => $cell) {
+					$cellContent = "";
+					switch ($colIndex) {
+						case "id":
+                        break;
+						case "name":
+                        $html .= "<td>" . $cell . "</td>";
+                        break;
+						case "adress":
+                        $domain = parse_url($cell, PHP_URL_HOST);
+                        $domain = str_replace("www.", "", $domain);
+                        $html .= "<td><a href=\"" . $cell . '" target="_blank">' . $domain . "</a>";
+                        break;
+						case "tags":
+                        $thisCellContent = array();
+                        $localTags = explode(",", $cell);
+                        array_walk($localTags, "trim");
+                        $containsNames = FALSE;
+                        foreach ($localTags as $tag) {
+                            if (!substr($tag, 0, 1) == "@") {
+                                $thisCellContent[] = $tag;
+								} else {
+                                $containsNames = TRUE;
+							}
+						}
+                        $html .= "<td>";
+                        $html .= ($containsNames ? "@you " : "");
+                        $html .= implode(", ", $thisCellContent) . "</td>";
+						
+                        break;
+						case "created":
+                        $html .= "<td>" . $cell . "</td>";
+                        break;
+					}
+				}
+				$html .= "</tr>";
+			}
+		}
+		$html .= "</tbody></table>";
+		
+		return $html;
+	}
+	
+	function check_inclusion_according_to_tag($row, $tags, $givenPasswords, $truePasswords) {
+		
+		//echo print_r($givenPasswords);
+		$tagArray = explode(",", $tags);
+		array_walk($tagArray, "trim");
+		
+		$any_match = FALSE;
+		//echo print_r($truePasswords);
+		
+		if (count(array_filter($tagArray)) > 0) {
+			foreach ($tagArray as $tag) {
+				
+				if (key_exists($tag, $truePasswords) && in_array($truePasswords[$tag]["password"], $givenPasswords)) {
+					$any_match = TRUE;
+				}
+			}
+			} else {
+			/* if the link has no tags, it can be considered to be free */
+			$any_match = TRUE;
+		}
+		return $any_match;
+	}
+	
+	function col_to_index($array, $columnToIndex) {
+		/* assumes a certain column to contain unique values and makes these values
+			* the key of each row
+		*/
+		$newArray = array();
+		foreach ($array as $oldRowIndex => $row) {
+			$newArray[$row[$columnToIndex]] = $row;
+		}
+		return $newArray;
+	}
+	
+	
+	$USER = "guest";
+	$PASSWORD = "password";
+	$CANCEL_TEXT = 'Sorry, but I don\'t want bots to enter. Contact me at Github or otherwise for a password!';
+	
+	/*
+		Easy PHP Upload - version 2.29
+		A easy to use class for your (multiple) file uploads
+		
+		Copyright (c) 2004 - 2006, Olaf Lederer
+		All rights reserved.
+		
+		Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+		
+		* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+		* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+		* Neither the name of the finalwebsites.com nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+		
+		THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+		
+		______________________________________________________________________
+		available at http://www.finalwebsites.com
+		Comments & suggestions: http://www.finalwebsites.com/contact.php
+	*/
+	
+	class file_upload {
+		
+		var $the_file;
+		var $the_temp_file;
+		var $upload_dir;
+		var $replace;
+		var $do_filename_check = "n";
+		var $max_length_filename = 100;
+		var $extensions;
+		var $ext_string;
+		var $language;
+		var $http_error;
+		var $rename_file;
+		// if this var is true the file copy get a new name
+		var $file_copy;
+		// the new name
+		var $message = array();
+		var $create_directory = true;
+		
+		function file_upload() {
+			$this -> language = "en";
+			// choice of en, nl, es
+			$this -> rename_file = false;
+			$this -> ext_string = "";
+		}
+		
+		function show_error_string() {
+			$msg_string = "";
+			foreach ($this->message as $value) {
+				$msg_string .= $value . "<br>\n";
+			}
+			return $msg_string;
+		}
+		
+		function set_file_name($new_name = "") {// this "conversion" is used for unique/new filenames
+			if ($this -> rename_file) {
+				if ($this -> the_file == "")
+                return;
+				$name = ($new_name == "") ? strtotime("now") : $new_name;
+				$name = $name . $this -> get_extension($this -> the_file);
+			}
+			else {
+				$name = $this -> the_file;
+			}
+			return $name;
+		}
+		
+		function upload($to_name = "") {
+			$new_name = $this -> set_file_name($to_name);
+			if ($this -> check_file_name($new_name)) {
+				if ($this -> validateExtension()) {
+					if (is_uploaded_file($this -> the_temp_file)) {
+						$this -> file_copy = $new_name;
+						if ($this -> move_upload($this -> the_temp_file, $this -> file_copy)) {
+							$this -> message[] = $this -> error_text($this -> http_error);
+							if ($this -> rename_file)
+                            $this -> message[] = $this -> error_text(16);
+							return true;
+						}
+					}
+					else {
+						$this -> message[] = $this -> error_text($this -> http_error);
+						return false;
+					}
+				}
+				else {
+					$this -> show_extensions();
+					$this -> message[] = $this -> error_text(11);
+					return false;
+				}
+			}
+			else {
+				return false;
+			}
+		}
+		
+		function check_file_name($the_name) {
+			if ($the_name != "") {
+				if (strlen($the_name) > $this -> max_length_filename) {
+					$this -> message[] = $this -> error_text(13);
+					return false;
+				}
+				else {
+					if ($this -> do_filename_check == "y") {
+						if (preg_match("/^[a-z0-9_]*\.(.){1,5}$/i", $the_name)) {
+							return true;
+						}
+						else {
+							$this -> message[] = $this -> error_text(12);
+							return false;
+						}
+					}
+					else {
+						return true;
+					}
+				}
+			}
+			else {
+				$this -> message[] = $this -> error_text(10);
+				return false;
+			}
+		}
+		
+		function get_extension($from_file) {
+			$ext = strtolower(strrchr($from_file, "."));
+			return $ext;
+		}
+		
+		function validateExtension() {
+			$extension = $this -> get_extension($this -> the_file);
+			$ext_array = $this -> extensions;
+			if (in_array($extension, $ext_array)) {
+				// check mime type hier too against allowed/restricted mime types (boolean check mimetype)
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		
+		// this method is only used for detailed error reporting
+		function show_extensions() {
+			$this -> ext_string = implode(" ", $this -> extensions);
+		}
+		
+		function move_upload($tmp_file, $new_file) {
+			umask(0);
+			if ($this -> existing_file($new_file)) {
+				$newfile = $this -> upload_dir . $new_file;
+				if ($this -> check_dir($this -> upload_dir)) {
+					if (move_uploaded_file($tmp_file, $newfile)) {
+						if ($this -> replace == "y") {
+							//system("chmod 0777 $newfile"); // maybe you need to use the system command in some cases...
+							chmod($newfile, 0777);
+						}
+						else {
+							// system("chmod 0755 $newfile");
+							chmod($newfile, 0755);
+						}
+						return true;
+					}
+					else {
+						return false;
+					}
+				}
+				else {
+					$this -> message[] = $this -> error_text(14);
+					return false;
+				}
+			}
+			else {
+				$this -> message[] = $this -> error_text(15);
+				return false;
+			}
+		}
+		
+		function check_dir($directory) {
+			if (!is_dir($directory)) {
+				if ($this -> create_directory) {
+					umask(0);
+					mkdir($directory, 0777);
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
+			else {
+				return true;
+			}
+		}
+		
+		function existing_file($file_name) {
+			if ($this -> replace == "y") {
+				return true;
+			}
+			else {
+				if (file_exists($this -> upload_dir . $file_name)) {
+					return false;
+				}
+				else {
+					return true;
+				}
+			}
+		}
+		
+		function get_uploaded_file_info($name) {
+			$str = "File name: " . basename($name) . "\n";
+			$str .= "File size: " . filesize($name) . " bytes\n";
+			if (function_exists("mime_content_type")) {
+				$str .= "Mime type: " . mime_content_type($name) . "\n";
+			}
+			if ($img_dim = getimagesize($name)) {
+				$str .= "Image dimensions: x = " . $img_dim[0] . "px, y = " . $img_dim[1] . "px\n";
+			}
+			return $str;
+		}
+		
+		// this method was first located inside the foto_upload extension
+		function del_temp_file($file) {
+			$delete = @unlink($file);
+			clearstatcache();
+			if (@file_exists($file)) {
+				$filesys = eregi_replace("/", "\\", $file);
+				$delete = @system("del $filesys");
+				clearstatcache();
+				if (@file_exists($file)) {
+					$delete = @chmod($file, 0775);
+					$delete = @unlink($file);
+					$delete = @system("del $filesys");
+				}
+			}
+		}
+		
+		// some error (HTTP)reporting, change the messages or remove options if you like.
+		function error_text($err_num) {
+			switch ($this->language) {
+				case "nl" :
+                $error[0] = "Foto succesvol kopieert.";
+                $error[1] = "Het bestand is te groot, controlleer de max. toegelaten bestandsgrootte.";
+                $error[2] = "Het bestand is te groot, controlleer de max. toegelaten bestandsgrootte.";
+                $error[3] = "Fout bij het uploaden, probeer het nog een keer.";
+                $error[4] = "Fout bij het uploaden, probeer het nog een keer.";
+                $error[10] = "Selecteer een bestand.";
+                $error[11] = "Het zijn alleen bestanden van dit type toegestaan: <b>" . $this -> ext_string . "</b>";
+                $error[12] = "Sorry, de bestandsnaam bevat tekens die niet zijn toegestaan. Gebruik alleen nummer, letters en het underscore teken. <br>Een geldige naam eindigt met een punt en de extensie.";
+                $error[13] = "De bestandsnaam is te lang, het maximum is: " . $this -> max_length_filename . " teken.";
+                $error[14] = "Sorry, het opgegeven directory bestaat niet!";
+                $error[15] = "Uploading <b>" . $this -> the_file . "...Fout!</b> Sorry, er is al een bestand met deze naam aanwezig.";
+                $error[16] = "Het gekopieerde bestand is hernoemd naar <b>" . $this -> file_copy . "</b>.";
+                break;
+				case "de" :
+                $error[0] = "Die Datei: <b>" . $this -> the_file . "</b> wurde hochgeladen!";
+                $error[1] = "Die hochzuladende Datei ist gr&ouml;&szlig;er als der Wert in der Server-Konfiguration!";
+                $error[2] = "Die hochzuladende Datei ist gr&ouml;&szlig;er als der Wert in der Klassen-Konfiguration!";
+                $error[3] = "Die hochzuladende Datei wurde nur teilweise &uuml;bertragen";
+                $error[4] = "Es wurde keine Datei hochgeladen";
+                $error[10] = "W&auml;hlen Sie eine Datei aus!.";
+                $error[11] = "Es sind nur Dateien mit folgenden Endungen erlaubt: <b>" . $this -> ext_string . "</b>";
+                $error[12] = "Der Dateiname enth&auml;lt ung&uuml;ltige Zeichen. Benutzen Sie nur alphanumerische Zeichen f&uuml;r den Dateinamen mit Unterstrich. <br>Ein g&uuml;ltiger Dateiname endet mit einem Punkt, gefolgt von der Endung.";
+                $error[13] = "Der Dateiname &uuml;berschreitet die maximale Anzahl von " . $this -> max_length_filename . " Zeichen.";
+                $error[14] = "Das Upload-Verzeichnis existiert nicht!";
+                $error[15] = "Upload <b>" . $this -> the_file . "...Fehler!</b> Eine Datei mit gleichem Dateinamen existiert bereits.";
+                $error[16] = "Die hochgeladene Datei ist umbenannt in <b>" . $this -> file_copy . "</b>.";
+                break;
+				//
+				// place here the translations (if you need) from the directory "add_translations"
+				//
+				default :
+                // start http errors
+                $error[0] = "File: <b>" . $this -> the_file . "</b> successfully uploaded!";
+                $error[1] = "The uploaded file exceeds the max. upload filesize directive in the server configuration.";
+                $error[2] = "The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the html form.";
+                $error[3] = "The uploaded file was only partially uploaded";
+                $error[4] = "No file was uploaded";
+                // end  http errors
+                $error[10] = "Please select a file for upload.";
+                $error[11] = "Only files with the following extensions are allowed: <b>" . $this -> ext_string . "</b>";
+                $error[12] = "Sorry, the filename contains invalid characters. Use only alphanumerical chars and separate parts of the name (if needed) with an underscore. <br>A valid filename ends with one dot followed by the extension.";
+                $error[13] = "The filename exceeds the maximum length of " . $this -> max_length_filename . " characters.";
+                $error[14] = "Sorry, the upload directory doesn't exist!";
+                $error[15] = "Uploading <b>" . $this -> the_file . "...Error!</b> Sorry, a file with this name already exitst.";
+                $error[16] = "The uploaded file is renamed to <b>" . $this -> file_copy . "</b>.";
+			}
+			return $error[$err_num];
+		}
+		
+	}
+	
+	//error_reporting(E_ALL);
+	$max_size = 1024 * 100 * 100;
+	// the max. size for uploading
+	
+	class multi_files extends file_upload {
+		
+		var $number_of_files = 0;
+		var $names_array;
+		var $tmp_names_array;
+		var $error_array;
+		var $wrong_extensions = 0;
+		var $bad_filenames = 0;
+		
+		function extra_text($msg_num) {
+			switch ($this->language) {
+				case "de" :
+                // add you translations here
+                break;
+				default :
+                $extra_msg[1] = "Error for: <b>" . $this -> the_file . "</b>";
+                $extra_msg[2] = "You have tried to upload " . $this -> wrong_extensions . " files with a bad extension, the following extensions are allowed: <b>" . $this -> ext_string . "</b>";
+                $extra_msg[3] = "Select at least on file.";
+                $extra_msg[4] = "Select the file(s) for upload.";
+                $extra_msg[5] = "You have tried to upload <b>" . $this -> bad_filenames . " files</b> with invalid characters inside the filename.";
+			}
+			return $extra_msg[$msg_num];
+		}
+		
+		// this method checkes the number of files for upload
+		// this example works with one or more files
+		function count_files() {
+			foreach ($this->names_array as $test) {
+				if ($test != "") {
+					$this -> number_of_files++;
+				}
+			}
+			if ($this -> number_of_files > 0) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		
+		function upload_multi_files() {
+			$this -> message = "";
+			if ($this -> count_files()) {
+				foreach ($this->names_array as $key => $value) {
+					if ($value != "") {
+						$this -> the_file = $value;
+						$new_name = $this -> set_file_name();
+						if ($this -> check_file_name($new_name)) {
+							if ($this -> validateExtension()) {
+								$this -> file_copy = $new_name;
+								$this -> the_temp_file = $this -> tmp_names_array[$key];
+								if (is_uploaded_file($this -> the_temp_file)) {
+									if ($this -> move_upload($this -> the_temp_file, $this -> file_copy)) {
+										$this -> message[] = $this -> error_text($this -> error_array[$key]);
+										if ($this -> rename_file)
+                                        $this -> message[] = $this -> error_text(16);
+										sleep(1);
+										// wait a seconds to get an new timestamp (if rename is set)
+									}
+								}
+								else {
+									$this -> message[] = $this -> extra_text(1);
+									$this -> message[] = $this -> error_text($this -> error_array[$key]);
+								}
+							}
+							else {
+								$this -> wrong_extensions++;
+							}
+						}
+						else {
+							$this -> bad_filenames++;
+						}
+					}
+				}
+				if ($this -> bad_filenames > 0)
+                $this -> message[] = $this -> extra_text(5);
+				if ($this -> wrong_extensions > 0) {
+					$this -> show_extensions();
+					$this -> message[] = $this -> extra_text(2);
+				}
+			}
+			else {
+				$this -> message[] = $this -> extra_text(3);
+			}
+		}
+		
+	}
+	
+	$multi_upload = new multi_files;
+	
+	$multi_upload -> upload_dir = $_SERVER['DOCUMENT_ROOT'] . "/evernoteToZotero/files/";
+	// "files" is the folder for the uploaded files (you have to create this folder)
+	$multi_upload -> extensions = array(
+    ".png",
+    ".zip",
+    ".txt",
+    ".enex"
+	);
+	// specify the allowed extensions here
+	$multi_upload -> message[] = $multi_upload -> extra_text(4);
+	// a different standard message for multiple files
+	//$multi_upload->rename_file = true; // set to "true" if you want to rename all files with a timestamp value
+	$multi_upload -> do_filename_check = "n";
+	// check filename ...
+	
+	if (isset($_POST['Submit'])) {
+		$multi_upload -> tmp_names_array = $_FILES['upload']['tmp_name'];
+		$multi_upload -> names_array = $_FILES['upload']['name'];
+		$multi_upload -> error_array = $_FILES['upload']['error'];
+		$multi_upload -> replace = (isset($_POST['replace'])) ? $_POST['replace'] : "n";
+		// because only a checked checkboxes is true
+		$multi_upload -> upload_multi_files();
+	}
+	
+	function filter_words($wordArray, $rules) {
+		
+		foreach ($rules as $rule) {
+			$rule = array_map("trim", explode("=", $rule));
+			//echo print_r($rule) . "<br>";
+			$newArray = array();
+			switch ($rule[0]) {
+				
+				case 'Case_insensitive' :
+                if ($rule[1]) {
+                    foreach ($wordArray as $word => $occurrences) {
+                        if ($word === strtolower($word)) {
+                            if (isset($wordArray[ucwords($word)])) {
+                                $newArray[$word] = $wordArray[ucwords($word)] + $occurrences;
+							}
+                            else {
+                                $newArray[$word] = $occurrences;
+							}
+						}
+					}
+                    arsort($newArray);
+                    $wordArray = $newArray;
+				}
+                break;
+				
+				case "higher_than" :
+                foreach ($wordArray as $word => $occurrences) {
+                    if ($occurrences > $rule[1]) {
+                        $newArray[$word] = $occurrences;
+					}
+				}
+                $wordArray = $newArray;
+                break;
+				
+				case "exclude" :
+                $wordsToExclude = array_map("trim", explode(",", $rule[1]));
+				
+                foreach ($wordArray as $word => $occurrences) {
+                    if (!(in_array($word, $wordsToExclude))) {
+                        $newArray[$word] = $occurrences;
+					}
+				}
+                $wordArray = $newArray;
+                break;
+				
+				case "longer_than" :
+                foreach ($wordArray as $word => $occurrences) {
+                    if (strlen($word) > $rule[1]) {
+                        $newArray[$word] = $occurrences;
+					}
+				}
+                $wordArray = $newArray;
+				
+                break;
+				
+				case "max" :
+                $i = 0;
+                foreach ($wordArray as $word => $occurrences) {
+                    if ($i < $rule[1]) {
+                        $newArray[$word] = $occurrences;
+					}
+                    $i++;
+				}
+                $wordArray = $newArray;
+                break;
+			}
+		}
+		//echo print_r($wordArray) . "<br>";
+		return $wordArray;
+	}
+	
+	function calculate_frequencies($wordArray) {
+		foreach ($wordArray as $fileName => $content) {
+			$wordCount = $content["wordCount"];
+			$frequencyArray = $content["frequencies"];
+			foreach ($frequencyArray as $word => $occurrences) {
+				$frequencyArray[$word] = round(($occurrences / $wordCount) * 100, 2);
+			}
+			$wordArray[$fileName]["frequencies"] = $frequencyArray;
+		}
+		return $wordArray;
+	}
+	
+	function sort_according_to($wordArray, $name) {
+		
+		$normArray = array($name => $wordArray[$name]);
+		$otherArrays = array_diff_key($wordArray, $normArray);
+		
+		foreach ($otherArrays as $file => $frequencies) {
+			$frequencies = $frequencies["frequencies"];
+			$newArray = array();
+			
+			foreach ($normArray[$name]["frequencies"] as $word => $frequency) {
+				if (isset($frequencies[$word])) {
+					$newArray[$word] = $frequencies[$word];
+				}
+				else {
+					$newArray[$word] = NULL;
+				}
+			}
+			$otherArrays[$file]["frequencies"] = $newArray;
+			
+		}
+		$returnArray = array_merge($normArray, $otherArrays);
+		return $returnArray;
+	}
+	
+	function rectify_wordArray($wordArray) {
+		$allWords = array();
+		foreach ($wordArray as $file => $array) {
+			$frequencies = $array["frequencies"];
+			$allWords = array_merge($allWords, array_keys($frequencies));
+		}
+		$allWords = array_unique($allWords);
+		
+		foreach ($wordArray as $file => $array) {
+			$frequencies = $array["frequencies"];
+			$newArray = array();
+			foreach ($allWords as $word) {
+				if (isset($frequencys[$word])) {
+					$newArray[$word] = $frequencys[$word];
+				}
+				else {
+					$newArray[$word] = NULL;
+				}
+				$wordArray[$file] = $newArray;
+			}
+		}
+		
+		return $wordArray;
+	}
+	
+	function redirect($to) {
+		@session_write_close();
+		if (!headers_sent()) {
+			header("Location: $to");
+			flush();
+			exit();
+		}
+		else {
+			print "<html><head><META http-equiv='refresh' content='0;URL=$to'></head><body><a href='$to'>$to</a></body></html>";
+			flush();
+			exit();
+		}
+	}
+	
+	function create_rules_from_ini($ini_array) {
+		
+		$rulesOptions = array(
+        "Case_insensitive",
+        "higher_than",
+        "exclude",
+        "longer_than",
+        "max"
+		);
+		
+		$rulesArray = array();
+		foreach ($ini_array as $key => $value) {
+			if (in_array($key, $rulesOptions)) {
+				$rulesArray[] = $key . " = " . $value;
+			}
+		}
+		return $rulesArray;
+	}
+	
+	function create_download($source, $filename = "export.ris") {
+		
+		$f = fopen('php://memory', 'w+');
+		fwrite($f, $source);
+		fseek($f, 0);
+		
+		header('Content-Type: text/plain');
+		header('Content-Disposition: attachment; filename="' . $filename . '"');
+		// make php send the generated lines to the browser
+		fpassthru($f);
+	}
+	
+	function get_all_files($dir = 'files') {
+		$fileArray = array();
+		$handle = opendir($dir);
+		
+		while (false !== ($entry = readdir($handle))) {
+			if (!in_array($entry, array(
+            ".",
+            ".."
+			))) {
+				$fileArray[] = $entry;
+			}
+		}
+		closedir($handle);
+		sort($fileArray);
+		
+		return $fileArray;
+	}
+	
+	
+	
+	function echop($array) {
+		/* extends echo by nicely printing arrays*/
+		if (gettype($array) != "array") {
+			echo "<br>" . $array . "<br>";
+		}
+		else {
+			
+			foreach ($array as $key => $element) {
+				if (gettype($element) == "string") {
+					echo $key . " => " . $element . "<br>";
+				}
+				else {
+					echo $key . " => ";
+					echo print_r($element) . "<br>";
+				}
+			}
+			echo "<br>";
+		}
+	}
+	
+	function power_perms($arr) {
+		
+		$power_set = power_set($arr);
+		$result = array();
+		foreach ($power_set as $set) {
+			$perms = perms($set);
+			$result = array_merge($result, $perms);
+		}
+		return $result;
+	}
+	
+	function power_set($in, $minLength = 1) {
+		
+		$count = count($in);
+		$members = pow(2, $count);
+		$return = array();
+		for ($i = 0; $i < $members; $i++) {
+			$b = sprintf("%0" . $count . "b", $i);
+			$out = array();
+			for ($j = 0; $j < $count; $j++) {
+				if ($b{$j} == '1')
+                $out[] = $in[$j];
+			}
+			if (count($out) >= $minLength) {
+				$return[] = $out;
+			}
+		}
+		
+		//usort($return,"cmp");  //can sort here by length
+		return $return;
+	}
+	
+	function factorial($int) {
+		if ($int < 2) {
+			return 1;
+		}
+		
+		for ($f = 2; $int - 1 > 1; $f *= $int--);
+		
+		return $f;
+	}
+	
+	function perm($arr, $nth = null) {
+		
+		if ($nth === null) {
+			return perms($arr);
+		}
+		
+		$result = array();
+		$length = count($arr);
+		
+		while ($length--) {
+			$f = factorial($length);
+			$p = floor($nth / $f);
+			$result[] = $arr[$p];
+			array_delete_by_key($arr, $p);
+			$nth -= $p * $f;
+		}
+		
+		$result = array_merge($result, $arr);
+		return $result;
+	}
+	
+	function perms($arr) {
+		$p = array();
+		for ($i = 0; $i < factorial(count($arr)); $i++) {
+			$p[] = perm($arr, $i);
+		}
+		return $p;
+	}
+	
+	function array_delete_by_key(&$array, $delete_key, $use_old_keys = FALSE) {
+		
+		unset($array[$delete_key]);
+		
+		if (!$use_old_keys) {
+			$array = array_values($array);
+		}
+		
+		return TRUE;
+	}
+	
+	function make_comparer() {
+		// Normalize criteria up front so that the comparer finds everything tidy
+		$criteria = func_get_args();
+		foreach ($criteria as $index => $criterion) {
+			$criteria[$index] = is_array($criterion) ? array_pad($criterion, 3, null) : array(
+            $criterion,
+            SORT_ASC,
+            null
+			);
+		}
+		
+		return function($first, $second) use (&$criteria) {
+			foreach ($criteria as $criterion) {
+				// How will we compare this round?
+				list($column, $sortOrder, $projection) = $criterion;
+				$sortOrder = $sortOrder === SORT_DESC ? -1 : 1;
+				
+				// If a projection was defined project the values now
+				if ($projection) {
+					$lhs = call_user_func($projection, $first[$column]);
+					$rhs = call_user_func($projection, $second[$column]);
+				}
+				else {
+					$lhs = $first[$column];
+					$rhs = $second[$column];
+				}
+				
+				// Do the actual comparison; do not return if equal
+				if ($lhs < $rhs) {
+					return -1 * $sortOrder;
+				}
+				else if ($lhs > $rhs) {
+					return 1 * $sortOrder;
+				}
+			}
+			
+			return 0;
+			// tiebreakers exhausted, so $first == $second
+		};
+	}
+	
+	function curPageURL() {
+		$pageURL = 'http';
+		if (isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {
+			$pageURL .= "s";
+		}
+		$pageURL .= "://";
+		if ($_SERVER["SERVER_PORT"] != "80") {
+			$pageURL .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"];
+		}
+		else {
+			$pageURL .= $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"];
+		}
+		return $pageURL;
+	}
+	
+	function link_for($url, $label = "", $class = "") {
+		/* wrapper to build links and the ability to define a class*/
+		$returnString = '<a href="' . $url . '" ';
+		if ($class != "") {
+			$returnString .= 'class="' . $class . '"';
+		}
+		$returnString .= '>';
+		if ($label == "") {
+			$returnString .= $url;
+		}
+		else {
+			$returnString .= $label;
+		}
+		$returnString .= "</a>";
+		
+		echo $returnString;
+	}
+	
+	function redirect($to) {
+		/* wrapper to redirect to a given url specified by $to */
+		@session_write_close();
+		if (!headers_sent()) {
+			header("Location: $to");
+			flush();
+			exit();
+		}
+		else {
+			print "<html><head><META http-equiv='refresh' content='0;URL=$to'></head><body><a href='$to'>$to</a></body></html>";
+			flush();
+			exit();
+		}
+	}
+	
+	function print_r2($Array, $Name = '', $size = 2, $depth = '', $Tab = '', $Sub = '', $c = 0) {
+		/** wrote to display with large multi dimensional arrays, // Dave Husk , easyphpscripts.com
+			* print_r2($Array,'Name_for_array'(optional));
+		*/
+		if (!is_array($Array))
+        return (FALSE);
+		if ($Name && $depth == '')
+        $Name1 = '$' . $Name;
+		$CR = "\r\n";
+		if ($c == 0) {
+			$display = '';
+			//defualt to open at start
+			echo $CR . '<script>function poke_that_array(dir){x=document.getElementById(dir);if(x.style.display == "none"){x.style.display = "";}else{x.style.display = "none";}}</script>' . $CR;
+		}
+		else
+        $display = 'none';
+		$BR = '<br>';
+		$Red = '<font color="#DD0000" size=' . $size . '>';
+		$Green = '<font color="#007700" size=' . $size . '>';
+		$Blue = '<font color="#0000BB" size=' . $size . '>';
+		$Black = '<font color="#000000" size=' . $size . '>';
+		$Orange = '<font color="#FF9900" size=' . $size . '>';
+		$Font_end = '</font>';
+		$Left = $Green . '' . '[' . $Font_end;
+		$Right = $Green . ']' . $Font_end;
+		$At = $Black . ' => ' . $Font_end;
+		$lSub = $Sub;
+		$c++;
+		foreach ($Array as $Key => $Val) {
+			if ($Key) { $output = 1;
+				$rKey = rand(100, 10000);
+				echo $CR . '<div><a name="print_r2' . $rKey . $c . '">' . $Tab . '' . $Green . $Font_end . ' ' . $At . '<a href="#print_r2' . $rKey . $c . '" onClick=poke_that_array("print_r2' . $rKey . $c . '")><font  size=' . $size . '>Array(' . $Sub . '</font></a>' . $CR . '<div style="display:' . $display . ';" id="print_r2' . $rKey . $c . '">' . $CR;
+				break;
+			}
+		}
+		foreach ($Array as $Key => $Val) { $c++;
+			$Type = gettype($Val);
+			$q = '';
+			if (is_array($Array[$Key]))
+            $Sub = $Orange . ' /** [' . @htmlentities($Key) . '] */' . $Font_end;
+			if (!is_numeric($Key))
+            $q = '"';
+			if (!is_numeric($Val) & !is_array($Val) & $Type != 'boolean')
+            $Val = '"' . $Val . '"';
+			if ($Type == 'NULL')
+            $Val = 'NULL';
+			if ($Type == 'boolean')
+            $Val = ($Val == 1) ? 'TRUE' : 'FALSE';
+			if (!is_array($Val)) { $At = $Blue . ' = ' . $Font_end;
+				$e = ';';
+			}
+			if (is_array($Array[$Key]))
+            $At = '';
+			echo $CR . $Tab . (chr(9)) . '&nbsp;&nbsp;' . $depth . $Left . $Blue . $q . @htmlentities($Key) . $q . $Font_end . $Right . $At . $Red . @htmlentities($Val) . $Font_end . $e . $BR . $CR;
+			if ($depth == '')
+            unset($lSub);
+			$e = '';
+			if (is_array($Array[$Key]))
+            print_r2($Array[$Key], $Name, $size, $depth . $Left . $Blue . $q . @htmlentities($Key) . $q . $Font_end . $Right, (chr(9)) . '&nbsp;&nbsp;&nbsp;' . $Tab, $Sub, $c);
+		}
+		if ($output)
+        echo $CR . '</div>' . $Tab . '<font  size=' . $size . '>)' . $lSub . '</font></div>' . $CR;
+		
+	}
+	
+	class Table {
+		
+		protected $opentable = "\n<table cellspacing=\"0\" cellpadding=\"0\">\n";
+		protected $closetable = "</table>\n";
+		protected $openrow = "\t<tr>\n";
+		protected $closerow = "\t</tr>\n";
+		
+		function __construct($data) {
+			$this -> string = $this -> opentable;
+			foreach ($data as $row) {
+				$this -> string .= $this -> buildrow($row);
+			}
+			$this -> string .= $this -> closetable;
+		}
+		
+		function addfield($field, $style = "null") {
+			if ($style == "null") {
+				$html = "\t\t<td>" . $field . "</td>\n";
+			}
+			else {
+				$html = "\t\t<td class=\"" . $style . "\">" . $field . "</td>\n";
+			}
+			return $html;
+		}
+		
+		function buildrow($row) {
+			$html .= $this -> openrow;
+			foreach ($row as $field) {
+				$html .= $this -> addfield($field);
+			}
+			$html .= $this -> closerow;
+			return $html;
+		}
+		
+		function draw() {
+			echo $this -> string;
+		}
+		
+	}
+	
+	class CSV_DataSource {
+		
+		public function __construct($string) {
+			$file = "temp/current.csv";
+			$handle = fopen($file, "w+");
+			fwrite($handle, $string);
+			$csv = new File_CSV_DataSource;
+			$csv -> load($file);
+			
+		}
+		
+	}
+	
+	class Helper {
+		/* class that contains all functions used in OilSandsDatabase*/
+		
+		public static function count_col_row($array) {
+			/* will return the number of rows(number of arrays in $array)
+			* and columns (length of the longest array within $array)*/
+			$rows = count($array);
+			$cols = 0;
+			foreach ($array as $currentRow) {
+				$cols = max($cols, count($currentRow));
+			}
+			
+			return array(
+            "col" => $cols,
+            "row" => $rows
+			);
+		}
+		
+		public static function fill_array($array, $cols = NULL) {
+			/* for a given $array of arrays, each array is padded with NULL-values
+				* to equalize lengths.
+			* The parameter $cols */
+			$col_row = Helper::count_col_row($array);
+			if (is_null($cols)) {
+				$cols = $col_row["col"];
+			}
+			else {
+				$cols = $col_row["col"] + intval($cols);
+			}
+			
+			foreach ($array as $key => $row) {
+				$array[$key] = array_pad($row, $cols, NULL);
+			}
+			
+			return $array;
+		}
+		
+		public static function array_to_csv($dataArray, $filePointer = NULL, $delimiter = ',', $enclosure = '"', $encloseAll = TRUE, $nullToMysqlNull = false) {
+			
+			if (isset($filePointer)) {
+				$filePointer = fopen($filePointer, "w+");
+			}
+			
+			$delimiter_esc = preg_quote($delimiter, '/');
+			$enclosure_esc = preg_quote($enclosure, '/');
+			
+			foreach ($dataArray as $row) {
+				if (empty($row)) {
+					continue;
+				}
+				$output = array();
+				foreach ($row as $field) {
+					if ($field === null && $nullToMysqlNull) {
+						$output[] = 'NULL';
+						continue;
+					}
+					$field = trim($field);
+					
+					// Enclose fields containing $delimiter, $enclosure or whitespace
+					if ($encloseAll || preg_match("/(?:${delimiter_esc}|${enclosure_esc}|[[:blank:]])/", $field)) {
+						$output[] = $enclosure . str_replace($enclosure, $enclosure . $enclosure, $field) . $enclosure;
+					}
+					else {
+						$output[] = $field;
+					}
+				}
+				
+				$csvstring .= implode($delimiter, $output) . PHP_EOL;
+			}
+			if (isset($filePointer)) {
+				fwrite($filePointer, $csvstring);
+				fclose($filePointer);
+			}
+			
+			return $csvstring;
+		}
+		
+		public static function csvstring_to_array($string, $separatorChar = ',', $enclosureChar = '"', $newlineChar = "\n") {
+			
+			$array = array();
+			$size = strlen($string);
+			$columnIndex = 0;
+			$rowIndex = 0;
+			$fieldValue = "";
+			$isEnclosured = false;
+			for ($i = 0; $i < $size; $i++) {
+				
+				$char = $string{$i};
+				$addChar = "";
+				
+				if ($isEnclosured) {
+					if ($char == $enclosureChar) {
+						
+						if ($i + 1 < $size && $string{$i + 1} == $enclosureChar) {
+							// escaped char
+							$addChar = $char;
+							$i++;
+							// dont check next char
+						}
+						else {
+							$isEnclosured = false;
+						}
+					}
+					else {
+						$addChar = $char;
+					}
+				}
+				else {
+					if ($char == $enclosureChar) {
+						$isEnclosured = true;
+					}
+					else {
+						
+						if ($char == $separatorChar) {
+							$array[$rowIndex][$columnIndex] = $fieldValue;
+							$fieldValue = "";
+							
+							$columnIndex++;
+						}
+						elseif ($char == $newlineChar) {
+							$array[$rowIndex][$columnIndex] = $fieldValue;
+							$fieldValue = "";
+							$columnIndex = 0;
+							$rowIndex++;
+						}
+						else {
+							$addChar = $char;
+						}
+					}
+				}
+				if ($addChar != "") {
+					$fieldValue .= $addChar;
+					
+				}
+			}
+			
+			if ($fieldValue) {// save last field
+				
+				$array[$rowIndex][$columnIndex] = $fieldValue;
+			}
+			
+			return $array;
+		}
+		
+		public static function parse($rawText, $code) {
+			
+			$text = $rawText;
+			
+			call_user_func($code, $text);
+			
+			return $text;
+		}
+		
+		public static function create_html_from_csv($csv) {
+			$array = Helper::csvstring_to_array($csv);
+			return Helper::create_html_from_array($array);
+		}
+		
+		public static function create_html_from_array($array) {
+			$col_row = Helper::count_col_row($array);
+			$cols = $col_row["col"];
+			$rows = $col_row["row"];
+			
+			$html = "<p><table border = '1'>";
+			for ($i = 0; $i < $rows; $i++) {
+				$html .= '<tr><td class="index">[' . $i . "]</td>";
+				for ($j = 0; $j < $cols; $j++) {
+					$html .= "<td>" . stripcslashes($array[$i][$j]) . "</td>";
+				}
+				$html .= "</tr>";
+			}
+			$html .= "</table></p>";
+			
+			return $html;
+		}
+		
+		public static function jump($array, $pivotColumn, $copy) {
+			/* sends the content of the cell in a certain column, the pivotColumn,
+				* to the last column available if its cell to the right is empty or "copy" is set to true
+			* */
+			if ($pivotColumn == "") {
+				$pivotColumn = 0;
+			}
+			if ($copy == "") {
+				$copy = FALSE;
+			}
+			$cols_rows = Helper::count_col_row($array);
+			$cols = $cols_rows["col"];
+			
+			foreach ($array as $key => $row) {
+				
+				if ($copy == "TRUE" || empty($row[$pivotColumn + 1])) {
+					$row[$cols - 1] = $row[$pivotColumn];
+					$array[$key] = $row;
+				}
+			}
+			
+			return $array;
+		}
+		
+		public static function copy_column($array, $column) {
+			/* will copy the content of a column to the last column */
+			return Helper::jump($array, $column, $copy = "TRUE");
+		}
+		
+		public static function remove_whitelines($array) {
+			
+			foreach ($array as $key => $row) {
+				if (strlen(trim(implode($row))) == 0) {
+					$array[$key] = NULL;
+				}
+			}
+			$array = array_filter($array);
+			return $array;
+		}
+		
+		public static function fill_from_above($array, $pivotCols, $pivotRows) {
+			/* will choose the specified rows in the specified column and copy onto the cells below all the way down
+				* until the next specified row is reached
+			*  */
+			$cols_rows = Helper::count_col_row($array);
+			if ($pivotCols == "") {
+				$pivotCols = array("0");
+			}
+			else {
+				$pivotCols = explode(",", $pivotCols);
+			}
+			
+			if (gettype($pivotRows) == "string" && $pivotRows != "") {
+				$pivotRows = explode(",", $pivotRows);
+			}
+			else {
+				$pivotRows = array();
+				foreach ($pivotCols as $col) {
+					foreach ($array as $rowKey => $row) {
+						if (trim($row[$col]) != "") {
+							$pivotRows[] = $rowKey;
+						}
+						
+					}
+				}
+			}
+			// echop($pivotRows);
+			foreach ($array as $rowKey => $row) {
+				if (!(in_array($rowKey, $pivotRows))) {
+					foreach ($row as $colKey => $cellValue) {
+						if (in_array($colKey, $pivotCols)) {
+							$array[$rowKey][$colKey] = $array[$rowKey - 1][$colKey];
+						}
+					}
+				}
+			}
+			// echop($array);
+			return $array;
+		}
+		
+		public static function remove_lines($array, $lines) {
+			if (gettype($lines) == "string") {
+				$lines = explode(",", $lines);
+			}
+			$newArray = array();
+			
+			foreach ($array as $key => $row) {
+				if (!(in_array($key, $lines)))
+                $newArray[] = $row;
+			}
+			return $newArray;
+		}
+		
+		public static function html_to_csv($htmlString, $number = 0) {
+			
+			$html = str_get_html($htmlString);
+			//$table =  $html->find('table');
+			
+			$csv = "";
+			
+			foreach ($html->find('tr') as $element) {
+				$td = array();
+				foreach ($element->find('th') as $row) {
+					$td[] = trim($row -> plaintext);
+				}
+				$csv .= implode(",", $td) . PHP_EOL;
+				
+				$td = array();
+				foreach ($element->find('td') as $row) {
+					$cell = addslashes(trim($row -> plaintext));
+					$td[] = $cell;
+				}
+				$csv .= '"' . implode('","', $td) . '"' . PHP_EOL;
+			}
+			
+			return $csv;
+		}
+		
+		public static function remove_columns($array, $columns, $keepKeys) {
+			if ($columns === "") {
+				$columns = Helper::empty_columns($array);
+			}
+			else {
+				$columns = explode(",", $columns);
+			}
+			
+			$newArray = array();
+			foreach ($array as $rowKey => $row) {
+				foreach ($row as $colKey => $cell) {
+					if (!(in_array($colKey, $columns))) {
+						if ($keepKeys == "true") {
+							$newArray[$rowKey][$colKey] = $cell;
+						}
+						else {
+							$newArray[$rowKey][] = $cell;
+						}
+					}
+				}
+			}
+			
+			return $newArray;
+		}
+		
+		public static function empty_columns($array) {
+			$columns = $array[0];
+			$resColumns = array();
+			
+			foreach ($columns as $colKey => $col) {
+				$colArray = array();
+				foreach ($array as $rowKey => $row) {
+					if (trim($array[$rowKey][$colKey]) != "") {
+						$colArray[] = $array[$rowKey][$colKey];
+					}
+				}
+				if (implode($colArray) == "") {
+					$resColumns[] = $colKey;
+				}
+			}
+			return $resColumns;
+		}
+		
+		public static function interject_rows($array, $number, $copy) {
+			if ($number == "") {
+				$number = 1;
+			}
+			if ($copy == "") {
+				$copy = FALSE;
+			}
+			$emptyRow = array_fill(0, count($array[0]), NULL);
+			
+			$newArray = array();
+			
+			foreach ($array as $rowKey => $row) {
+				$newArray[] = $row;
+				
+				for ($i = 0; $i < $number; $i++) {
+					if ($copy == "TRUE") {
+						$newArray[] = $newArray[$rowKey];
+					}
+					else {
+						$newArray[] = $emptyRow;
+					}
+				}
+			}
+			
+			return $newArray;
+		}
+		
+		public static function add_column($csv, $cols) {
+			if ($cols == "") {
+				$cols = 1;
+			};
+			return Helper::fill_array($csv, $cols);
+		}
+		
+		public static function copy_where($array, $col, $regex) {
+			if ($col == "") {
+				$col = 0;
+			}
+			if ($regex == "") {
+				$regex = "%\w+%";
+			}
+			
+			$endCol = count($array[0]) - 1;
+			foreach ($array as $rowKey => $row) {
+				if (preg_match($regex, $row[$col]) == 1) {
+					$array[$rowKey][$endCol] = $array[$rowKey][$col];
+				}
+			}
+			
+			return $array;
+		}
+		
+		public static function remove_from($array, $col, $regex) {
+			
+			$col = explode(",", $col);
+			$regex = explode(",", $regex);
+			foreach ($col as $colKey => $colValue) {
+				foreach ($array as $rowKey => $row) {
+					
+					$array[$rowKey][$colValue] = preg_replace($regex[$colKey], "", $row[$colValue]);
+				}
+			}
+			
+			return $array;
+		}
+		
+		public static function nonempty_keys($array, $col = 0) {
+			$nonEmpty = array();
+			foreach ($array as $rowKey => $row) {
+				if (!(empty($row[$col]))) {
+					$nonEmpty[] = $rowKey;
+				}
+			}
+			return $nonEmpty;
+		}
+		
+		public static function nonempty_columns($array) {
+			$returnArray = array();
+			$headers = array_keys(reset($array));
+			foreach ($headers as $header) {
+				$col = Helper::sql_select_columns($array, $header);
+				if (array_filter($col) != NULL) {
+					$returnArray[] = $header;
+				}
+			}
+			return $returnArray;
+		}
+		
+		public static function slice_at($array, $startpoints) {
+			$diffpoints = array();
+			$startpoints = array_unique($startpoints);
+			
+			foreach ($startpoints as $key => $value) {
+				if ($key != count($startpoints) - 1) {
+					$diffpoints[] = $startpoints[$key + 1] - $value;
+				}
+			}
+			$diffpoints[] = count($array) - end($diffpoints);
+			$newArray = array();
+			foreach ($startpoints as $key => $value) {
+				$newArray[] = array_slice($array, $value, $diffpoints[$key]);
+			}
+			$newArray = array_values($newArray);
+			return $newArray;
+		}
+		
+		public static function convert_project_plan($array) {
+			
+			$nonEmpty = Helper::nonempty_keys($array);
+			$array = Helper::slice_at($array, $nonEmpty);
+			
+			foreach ($array as $key => $Company) {
+				$array[$key] = call_user_func_array('array_merge', array_values($Company));
+				$array[$key] = array_values(array_filter($array[$key], 'strlen'));
+			}
+			
+			$newArray = array();
+			foreach ($array as $companyKey => $Company) {
+				$CompanyName = $Company[0];
+				$projectKeys = Helper::find_project_keys($Company);
+				$Projects = Helper::slice_at($Company, $projectKeys);
+				
+				foreach ($Projects as $projectKey => $Project) {
+					$ProjectName = $Project[0];
+					
+					$phaseKeys = Helper::find_phase_keys($Project);
+					$Phases = Helper::slice_at($Project, $phaseKeys);
+					$Phases = array_values($Phases);
+					
+					foreach ($Phases as $phaseKey => $Phase) {
+						array_unshift($Phase, $CompanyName, $ProjectName);
+						$newArray[] = $Phase;
+					}
+				}
+			}
+			$newArray = Helper::fill_array($newArray);
+			$col_row = Helper::count_col_row($newArray);
+			$col1 = $col_row["col"] - 2;
+			$col2 = $col_row["col"] - 1;
+			Helper::merge_columns($newArray, $col1, $col2);
+			
+			return $newArray;
+		}
+		
+		public static function find_phase_keys($array) {
+			
+			$returnArray = array();
+			foreach ($array as $key => $value) {
+				if (intval($key) < 2) {
+					continue;
+				}
+				
+				if (Helper::is_phase($value)) {
+					$returnArray[] = $key;
+					
+				}
+				
+			}
+			return $returnArray;
+		}
+		
+		public static function is_phase($string) {
+			
+			$limit = 30;
+			$validPhases = array(
+            "stage",
+            "phase",
+            "pilot",
+            "demonstration",
+            "bottleneck",
+            "MR2",
+            "Expansion",
+            "Extension",
+            "Leismer ",
+            "Thornbury",
+            "Pod One",
+            "Hangingstone",
+            "Reliability Tranche 2",
+            "Millennium Mine"
+			);
+			$invalidPhases = array(
+            "Hangingstone Pilot",
+            "Single cycle pilot"
+			);
+			$is_phase = FALSE;
+			
+			foreach ($validPhases as $key => $value) {
+				if (gettype(stripos($string, $value)) == "integer") {
+					$is_phase = TRUE;
+				}
+			}
+			$is_invalid = FALSE;
+			foreach ($invalidPhases as $key => $value) {
+				if (gettype(stripos($string, $value)) == "integer" || strlen($string) > $limit) {
+					$is_invalid = TRUE;
+				}
+			}
+			
+			if ($is_phase && !($is_invalid)) {
+				return TRUE;
+				
+			}
+			else {
+				return FALSE;
+			}
+			
+		}
+		
+		public static function find_project_keys($array) {
+			
+			$nameArray = array();
+			$array = array_values($array);
+			
+			foreach ($array as $key => $value) {
+				$is_owner = Helper::is_project_owner($value);
+				
+				if ($is_owner) {
+					$is_first_owner = !(Helper::is_project_owner($array[$key - 1]));
+				}
+				
+				if ($is_owner && $is_first_owner) {
+					
+					if (Helper::is_project_date($array[$key - 2])) {
+						$nameArray[] = $key - 3;
+					}
+					else {
+						$nameArray[] = $key - 1;
+					}
+				}
+			}
+			return $nameArray;
+		}
+		
+		public static function is_project_owner($string) {
+			
+			return (preg_match("~\d%\)~", $string) == 1);
+		}
+		
+		/*
+			/* ###################################################
+			/* is_project_date
+			/* ###################################################
+		*/
+		public static function is_project_date($string) {
+			
+			return (preg_match("~[[:upper:]]{1}[[:lower:]]{2}[[:blank:]]{1}\d{4}:~", $string) == 1);
+		}
+		
+		/*
+			/* ###################################################
+			/* array_each_add
+			/* ###################################################
+		*/
+		public static function array_each_add($array, $number) {
+			foreach ($array as $key => $value) {
+				$array[$key] = intval($array[$key]) + $number;
+			}
+			return $array;
+		}
+		
+		/*
+			/* ###################################################
+			/* multiple_search
+			/* ###################################################
+		*/
+		public static function multiple_search($haystack_array, $needle_array, $length_limit = FALSE) {
+			$returnArray = array();
+			if (gettype($needle_array) != "array") {
+				$needle_array = array($needle_array);
+			}
+			
+			foreach ($needle_array as $needleKey => $needleValue) {
+				foreach ($haystack_array as $haystackKey => $haystackValue) {
+					$is_found = gettype(stripos($haystackValue, $needleValue)) == "integer";
+					$is_short = $length_limit == FALSE || strlen($haystackValue) < $length_limit;
+					if ($is_found && $is_short) {
+						$returnArray[] = $haystackKey;
+					}
+				}
+			}
+			$returnArray = array_unique(array_values($returnArray));
+			sort($returnArray);
+			
+			return $returnArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* merge_columns
+			/* ###################################################
+		*/
+		public static function merge_columns($array, $col1, $col2) {
+			
+			foreach ($array as $rowKey => $row) {
+				
+				$array[$rowKey][$col1] = $array[$rowKey][$col1] . $array[$rowKey][$col2];
+			}
+			$array = Helper::remove_columns($array, $columns = $col2);
+			
+			return $array;
+		}
+		
+		/*
+			/* ###################################################
+			/* split_at
+			/* ###################################################
+		*/
+		public static function split_at($array, $col, $char) {
+			$col = intval($col);
+			if (strlen(trim($char)) < 1) {
+				$char = "%[[:blank:]]{1}%";
+			}
+			else {
+				$char = "%" . $char . "%";
+			}
+			
+			foreach ($array as $rowKey => $row) {
+				
+				$cell = $row[$col];
+				
+				$splitArray = preg_split($char, $cell);
+				$leftCell = array($splitArray[0]);
+				$rightCell = array($splitArray[1]);
+				
+				if ($col == 0) {
+					$array[$rowKey] = array_merge($leftCell, $rightCell, array_slice($row, 2));
+					
+				}
+				else {
+					$leftPart = array_slice($row, 0, $col - 1);
+					$rightPart = array_slice($row, $col + 1);
+					$array[$rowKey] = array_merge($leftPart, $leftCell, $rightCell, $rightPart);
+				}
+			}
+			
+			return $array;
+		}
+		
+		/*
+			/* ###################################################
+			/* transpose
+			/* ###################################################
+		*/
+		public static function transpose($array) {
+			array_unshift($array, null);
+			return call_user_func_array('array_map', $array);
+		}
+		
+		public static function add_header($array, $header) {
+			$header = explode(",", $header);
+			
+			array_unshift($array, $header);
+			
+			return $array;
+		}
+		
+		public static function remove_duplicates($array) {
+			
+			return array_unique($array, SORT_REGULAR);
+		}
+		
+		public static function draw_left($array, $targetCol) {
+			
+			if ($targetCol == "") {
+				$targetCol = 0;
+			}
+			
+			foreach ($array as $rowKey => $row) {
+				foreach ($row as $colKey => $cell) {
+					if ($cell != "" && $targetCol <= $colKey) {
+						$array[$rowKey] = array_splice($row, $colKey);
+						continue 2;
+					}
+				}
+			}
+			return $array;
+		}
+		
+		/*
+			/* ###################################################
+			/* find_rows
+			/* ###################################################
+		*/
+		public static function find_rows($array, $regex, $col) {
+			if ($col == "") {
+				$col = 0;
+			}
+			
+			$returnArray = array();
+			foreach ($array as $rowKey => $row) {
+				if ($row[$col] == "" && $regex == "") {
+					$returnArray[] = $rowKey;
+				}
+				else {
+					if (preg_match($regex, $row[$col]) == 1) {
+						$returnArray[] = $rowKey;
+					}
+				}
+			}
+			return $returnArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* split_row_at
+			/* ###################################################
+		*/
+		public static function split_row_at($array, $colRowRegex, $delimiterRegex) {
+			$colRowRegex = explode(",", $colRowRegex, 2);
+			$col = $colRowRegex[0];
+			if (count($colRowRegex) > 1) {
+				$rowRegex = $colRowRegex[1];
+			}
+			else {
+				$rowRegex = "%\w+%";
+				//means "at least something"
+			}
+			
+			$returnArray = array();
+			$rows = Helper::find_rows($array, $rowRegex, $col);
+			foreach ($array as $rowKey => $row) {
+				if (in_array($rowKey, $rows)) {
+					$splitCells = array_keys(preg_grep($delimiterRegex, $array[$rowKey]));
+					$added_arrays = Helper::slice_at($row, $splitCells);
+				}
+				else {
+					$added_arrays = $row;
+				}
+				foreach ($added_arrays as $singleRow) {
+					$returnArray[] = $singleRow;
+				}
+			}
+			return $returnArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* remove_lines_where
+			/* ###################################################
+		*/
+		public static function remove_lines_where($array, $regex, $col) {
+			
+			$linesToRemove = Helper::find_rows($array, $regex, $col);
+			
+			$array = Helper::remove_lines($array, $linesToRemove);
+			return $array;
+		}
+		
+		/*
+			/* ###################################################
+			/* fill_from_above_where
+			/* ###################################################
+		*/
+		public static function fill_from_above_where($array, $pivotCols, $regex) {
+			$pivotRows = Helper::find_rows($array, $regex, $pivotCols);
+			$array = Helper::fill_from_above($array, $pivotCols, $pivotRows);
+			return $array;
+		}
+		
+		/*
+			/* ###################################################
+			/* remove_if_other_col
+			/* ###################################################
+		*/
+		public static function remove_if_other_col($array, $checkCol, $removeCol) {
+			$checkCol = explode(",", $checkCol, 2);
+			$regex = "%\w+%";
+			$checkCol = $checkCol[0];
+			if (count($checkCol) > 1) {
+				$regex = $checkCol[1];
+			}
+			
+			foreach ($array as $rowKey => $row) {
+				if (preg_match($regex, $row[$checkCol]) == 1) {
+					$array[$rowKey][$removeCol] = "";
+				}
+			}
+			
+			return $array;
+		}
+		
+		/*
+			/* ###################################################
+			/* melt
+			/* ###################################################
+		*/
+		public static function melt($array, $colsToSplit, $header) {
+            /* will "melt" an array according to Hadley Wickham's paper http://www.jstatsoft.org/v21/i12/paper */
+            
+			// header contains only the words used for the value and the word of differentiation, for example "Value" and "Product"
+			$colsToSplit = explode(",", $colsToSplit);
+			$header = explode(",", $header);
+			
+			$newHeader = array_diff_key($array[0], array_flip($colsToSplit));
+			$newHeader = array_merge(array_values($newHeader), $header);
+			
+			$newArray = array($newHeader);
+			
+			foreach ($colsToSplit as $splitCol) {
+				$property = $array[0][$splitCol];
+				foreach ($array as $rowKey => $row) {
+					if ($rowKey == 0) {//don't include old header
+						continue 1;
+					}
+					$newRow = array();
+					foreach ($row as $colKey => $cell) {
+						if ($colKey == $splitCol) {
+							$propertyValue = $cell;
+						}
+						if (!(in_array($colKey, $colsToSplit))) {
+							$newRow[] = $cell;
+						}
+					}
+					$newRow[] = $propertyValue;
+					$newRow[] = $property;
+					$newArray[] = $newRow;
+				}
+			}
+			return $newArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* find_most_similar
+			/* ###################################################
+		*/
+		public static function find_most_similar($needle, $haystack, $alwaysFindSomething = TRUE) {
+			
+			if ($alwaysFindSomething) {
+				$bestWord = reset($haystack);
+				$shortestDistance = levenshtein($needle, $bestWord);
+			}
+			else {
+				$bestWord = "";
+				$shortestDistance = 255;
+			}
+			
+			// echo print_r($haystack);
+			foreach ($haystack as $key => $value) {
+				$thisDistance = levenshtein($needle, $value);
+				if ($thisDistance < $shortestDistance) {
+					$bestWord = $value;
+					$shortestDistance = $thisDistance;
+				}
+			}
+			return $bestWord;
+		}
+		
+		/*
+			/* ###################################################
+			/* result_column_to_array
+			/* ###################################################
+		*/
+		public static function result_column_to_array($resultSet, $colName) {
+			
+			$returnArray = array();
+			foreach ($resultSet as $result) {
+				$returnArray[] = $result -> $colName;
+			}
+			return $returnArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* get_array_column
+			/* ###################################################
+		*/
+		public static function get_array_column($array, $col, $hasHeader) {
+			
+			$newArray = array();
+			
+			if (gettype($hasHeader) == "boolean" && $hasHeader == TRUE) {
+				$newHeader = $array[0][$col];
+				$array = array_slice($array, 1);
+			}
+			elseif (gettype($hasHeader) == "string" && strlen($hasHeader) > 0) {
+				$newHeader = $hasHeader;
+				$array = array_slice($array, 1);
+			}
+			
+			foreach ($array as $rowKey => $row) {
+				$newArray[] = $row[$col];
+			}
+			$returnArray = array(
+            "header" => $newHeader,
+            "values" => $newArray
+			);
+			
+			return $returnArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* sql_remove_duplicates
+			/* ###################################################
+		*/
+		public static function sql_remove_duplicates($sqlTable, $ignoreArray = array("id")) {
+			
+			$rowsBefore = ORM::for_table($sqlTable) -> count();
+			
+			$headers = Helper::sql_get_columnNames($sqlTable);
+			$headers = array_diff($headers, $ignoreArray);
+			echo print_r($headers) . "<br><br>";
+			$query = " ALTER TABLE " . $sqlTable . " ADD COLUMN tmp_col TEXT(300); ";
+			$query .= ' UPDATE ' . $sqlTable . ' SET tmp_col = concat_ws(",", ' . implode(", ", $headers) . ' ); ';
+			$query .= "CREATE TABLE tmp LIKE " . $sqlTable . " ; ";
+			$query .= " ALTER TABLE tmp ADD UNIQUE (tmp_col(300)) ; ";
+			$query .= "INSERT IGNORE INTO tmp SELECT * FROM " . $sqlTable . " ; ";
+			$query .= "RENAME TABLE " . $sqlTable . " TO deleteme, tmp TO " . $sqlTable . " ; ";
+			$query .= " ALTER TABLE " . $sqlTable . " DROP COLUMN tmp_col ; ";
+			$query .= "DROP TABLE deleteme ;";
+			ORM::for_table($sqlTable) -> raw_execute($query);
+			
+			$rowsAfter = ORM::for_table($sqlTable) -> count();
+			
+			return $rowsBefore - $rowsAfter;
+		}
+		
+		/*
+			/* ###################################################
+			/* sql_convert_dates
+			/* ###################################################
+		*/
+		public static function sql_convert_dates($sourceId, $tableName) {
+			$ORM = ORM::for_table($tableName) -> where("Source_Id", $sourceId) -> find_many();
+			
+			$dateHeaders = array(
+            "Year",
+            "Date",
+            "Actual_Application",
+            "Expected_Approval",
+            "Regulatory_Approval",
+            "Construction_Start",
+            "First_Steam",
+            "Production_Start",
+            "Month",
+            "Startup_Date"
+			);
+			$quartalHeaders = array(
+            "Actual_Application",
+            "Expected_Approval",
+            "Regulatory_Approval",
+            "Construction_Start",
+            "First_Steam",
+            "Production_Start"
+			);
+			
+			// Year (Decimal or integer)
+			// Date (Decimal or integer)
+			// Actual_Application (Q4 2012)
+			// Expected_Approval (Q4 2015 or integer)
+			// Regulatory_Approval (Q4 2015 or integer)
+			// Construction_Start (Q4 2015 or integer)
+			// First_Steam (Q4 2015 or integer)
+			// Production_Start (Q4 2015 or integer)
+			// Month (November, nov, Nov)
+			// Startup_Date (2013-07-01)
+			foreach ($ORM as $row) {
+				$existsArray = array();
+				foreach ($dateHeaders as $header) {
+					$exists = $row -> $header == NULL || $row -> $header == "" || $row -> $header == "NULL";
+					$existsArray[$header] = !($exists);
+				}
+				$existsMonthYear = var_export($existsArray["Month"], TRUE) . var_export($existsArray["Year"], TRUE);
+				
+				switch ($existsMonthYear) {
+					case 'truetrue' :
+                    $date = array(
+					"Year" => $row -> Year,
+					"Month" => $row -> Month,
+					"Day" => "01"
+                    );
+                    $newDate = Helper::convert_date($date, "YMD");
+                    break;
+					
+					case 'falsetrue' :
+                    $date = $row -> Year;
+                    if (fmod(floatval($date), 1.0) == 0) {
+                        $newDate = Helper::convert_date($date, "int");
+					}
+                    else {
+                        $newDate = Helper::convert_date($date, "dec");
+					}
+                    break;
+					
+					case "falsefalse" :
+                    $date = $row -> Date;
+					
+                    $date = explode("-", $date);
+                    if (count($date) == 3) {
+						
+                        $date = array(
+						"Year" => $date[0],
+						"Month" => $date[1],
+						"Day" => $date[2]
+                        );
+                        $newDate = Helper::convert_date($date, "YMD");
+					}
+                    if (count($date) == 2) {
+                        $date = array(
+						"Year" => $date[0],
+						"Month" => $row -> Month,
+						"Day" => "01"
+                        );
+                        $newDate = Helper::convert_date($date, "YMD");
+					}
+                    if (count($date) == 1) {
+                        $date = $date[0];
+                        if (strlen($date) == 0) {
+                            $newDate = NULL;
+						}
+                        else {
+                            if (fmod($date, 1) == 0) {
+                                $newDate = Helper::convert_date($date, "int");
+							}
+                            else {
+                                $newDate = Helper::convert_date($date, "dec");
+							}
+						}
+					}
+					
+                    break;
+				}
+				$row -> Date = $newDate;
+				foreach ($quartalHeaders as $qHeader) {
+					if ($existsArray[$qHeader]) {
+						$date = $row -> $qHeader;
+						
+						if (substr($date, 0, 1) == "Q") {
+							$newDate = Helper::convert_date($date, "Q");
+						}
+						else {
+							$newDate = Helper::convert_date($date, "int");
+						}
+						$row -> $qHeader = $newDate;
+					}
+				}
+				$row -> Month = NULL;
+				$row -> Year = NULL;
+				
+				$row -> save();
+			}
+			
+		}
+		
+		/*
+			/* ###################################################
+			/* convert_date
+			/* ###################################################
+		*/
+		public static function convert_date($date, $type) {
+			
+			$qArray = array(
+            "02" => 'Q1',
+            "05" => 'Q2',
+            "08" => 'Q3',
+            "11" => 'Q4'
+			);
+			
+			switch ($type) {
+				case 'dec' :
+                $Year = floor($date);
+                $remainder = fmod($date, 1);
+                $days = floor($remainder * 365.0);
+                $interval = new DateInterval("P" . $days . "D");
+                $firstDay = date_create($Year . "-01-01");
+                $returnDate = date_format(date_add($firstDay, $interval), 'Y-m-d');
+                break;
+				case 'int' :
+                $date = trim($date);
+                $returnDate = $date . "-07-01";
+                break;
+				case 'YMD' :
+                $year = trim($date["Year"]);
+                $month = Helper::convert_month($date["Month"]);
+                $day = trim($date["Day"]);
+                $returnDate = $year . "-" . $month . "-" . $day;
+                break;
+				
+				case 'Q' :
+                $date = explode(" ", $date);
+                $year = trim($date[1]);
+                $month = array_search($date[0], $qArray);
+                $day = "15";
+				
+                $returnDate = $year . "-" . $month . "-" . $day;
+				
+                break;
+			}
+			return $returnDate;
+			
+		}
+		
+		/*
+			/* ###################################################
+			/* convert_month
+			/* ###################################################
+		*/
+		public static function convert_month($month) {
+			
+			if (strlen($month) == 2 || strlen($month) == 0) {
+				return $month;
+			}
+			elseif (strlen($month) == 1) {
+				return "0" . $month;
+			}
+			else {
+				$monthNumbers = array(
+                '01',
+                '02',
+                '03',
+                '04',
+                '05',
+                '06',
+                '07',
+                '08',
+                '09',
+                '10',
+                '11',
+                '12'
+				);
+				$monthNames = array(
+                "jan",
+                "feb",
+                "mar",
+                "apr",
+                "may",
+                "jun",
+                "jul",
+                "aug",
+                "sep",
+                "oct",
+                "nov",
+                "dec"
+				);
+				$allMonths = array_combine($monthNumbers, $monthNames);
+				$month = strtolower(substr($month, 0, 3));
+				$newMonth = array_search($month, $allMonths);
+				
+				if ($newMonth != FALSE) {
+					return $newMonth;
+				}
+				else {
+					return "Error";
+				}
+			}
+			
+		}
+		
+		/*
+			/* ###################################################
+			/* sql_to_barrels_per_day
+			/* ###################################################
+		*/
+		public static function sql_to_barrels_per_day($sourceId, $dataTable) {
+			
+			$ORM = ORM::for_table($dataTable) -> where("Source_Id", $sourceId) -> find_many();
+			
+			$barrel_per_cubic_meter = 1 / 0.158987295;
+			$thousand = 1000;
+			$one_per_thousand = 1 / 1000;
+			$days_per_year = 365;
+			$years_per_day = 1 / $days_per_year;
+			$months_per_day = 1 / 30.417;
+			
+			$unitFactors["Thousand Cubic Metres per year"] = $thousand * $barrel_per_cubic_meter * $years_per_day;
+			$unitFactors["Thousand barrels per day"] = $thousand;
+			$unitFactors["Barrels per day"] = 1;
+			$unitFactors["Million barrels per day"] = $thousand * $thousand;
+			$unitFactors["Cubic metres per year"] = $barrel_per_cubic_meter * $years_per_day;
+			$unitFactors["Thousand Cubic meters per day"] = $thousand * $barrel_per_cubic_meter;
+			$unitFactors["Thousand Cubic metres per month"] = $thousand * $barrel_per_cubic_meter * $months_per_day;
+			$unitFactors["Billion barrels per year"] = $thousand * $thousand * $thousand * $years_per_day;
+			
+			$possibleUnits = array_keys($unitFactors);
+			
+			foreach ($ORM as $row) {
+				
+				$unit = $row -> Unit;
+				$value = $row -> Value;
+				
+				if (!in_array($unit, $possibleUnits)) {
+					// if the unit is omitted, the standard unit should be assumed
+					if (trim($unit) == "") {
+						$unit = "Barrels per day";
+					}
+					else {
+						$unit = Helper::find_most_similar($unit, $possibleUnits);
+					}
+				}
+				$factor = $unitFactors[$unit];
+				
+				$row -> Value = $value * $factor;
+				$row -> Unit = NULL;
+				
+				$row -> save();
+			}
+		}
+		
+		/*
+			/* ###################################################
+			/* interpolate_table
+			/* ###################################################
+		*/
+		public static function interpolate_table($sourceId) {
+			
+			/* chooses all rows of a given source from the table osdb_data, interpolates the values with a step
+				length of one day and inserts these values into osdb_working
+				
+				since every source may contain series for several different subgrupts (scenario, products or both),
+				the interpolation has to be done for each subgroup individually
+				
+			All columns that are not within $ignoreArray (the standard columns) are considered to contain subgroups */
+			$ignoreArray = array(
+            "id",
+            "Source_Id",
+            "Date",
+            "Value"
+			);
+			
+			$ORMArray = ORM::for_table('osdb_data') -> where("Source_Id", $sourceId) -> find_array();
+			
+			// $subGroupHeaders = array_keys(array_filter(reset($ORMArray)));
+			$subGroupHeaders = Helper::nonempty_columns($ORMArray);
+			
+			// creates an array of all non-standard column headers
+			$subGroupHeaders = array_diff($subGroupHeaders, $ignoreArray);
+			
+			// now $subGroupHeaders contains all column-names that contain subgroups
+			if (count($subGroupHeaders) > 0) {
+				$subGroupArray = Helper::sql_select_columns($ORMArray, $subGroupHeaders, TRUE);
+				$subGroupArray = array_unique($subGroupArray, SORT_REGULAR);
+				
+				Helper::sql_add_columns("osdb_working", $subGroupHeaders);
+			}
+			else {
+				$subGroupArray = array(NULL);
+			}
+			$workingTableHeaders = Helper::sql_get_columnNames("osdb_working");
+			/* each row of $subGroupArray now contains  the names of a different dataset that should or could
+				be interpolated
+				
+			now the interpolation begins */
+			foreach ($subGroupArray as $subGroup) {
+				$queryArray = array();
+				$currentORM = $ORMArray;
+				
+				/* to create a unique name for the compilation, the ShortName is prepended to a row of unique values */
+				$currentCompilationName = ORM::for_table('osdb_sources') -> find_one($sourceId);
+				$currentCompilationName = $currentCompilationName -> ShortName;
+				
+				/* removes all element that are not part of the current Subgroup
+				filtering is not required if the table only contains one type of data */
+				if ($subGroup != NULL) {
+					foreach ($subGroup as $key => $element) {
+						// echo $key . " => " . $element . " <br>";
+						$currentORM = Helper::filter_for_value($currentORM, $key, $element);
+						if ($key == 'Time_Accuracy') {
+							$currentCompilationName .= " - " . $element . " months accuracy";
+						}
+						else {
+							$currentCompilationName .= " - " . $element;
+						}
+					}
+				}
+				// interpolation is only applicable if there is more than one datapoint to start from
+				if (count($currentORM) > 1) {
+					
+					$currentORM = Helper::sort_by($currentORM, "Date");
+					$currentORM = array_values($currentORM);
+					
+					$firstRow = reset($currentORM);
+					$lastRow = end($currentORM);
+					$firstRowDate = explode("-", $firstRow["Date"]);
+					$lastRowDate = explode("-", $lastRow["Date"]);
+					$timePeriod = $firstRowDate[0] . "-" . $lastRowDate[0];
+					
+					// At the same time, a new Compilation has to be defined for this subgroup
+					$newCompilation = ORM::for_table('osdb_compilations') -> create();
+					$newCompilation -> Name = $currentCompilationName;
+					$newCompilation -> Source_Id = $sourceId;
+					$newCompilation -> TimePeriod = $timePeriod;
+					$newCompilation -> save();
+					$compilationId = $newCompilation -> id();
+					
+					// since $currentORM is still in the form of [Data_row_Id]=>array(), we only filter out the values
+					
+					foreach ($currentORM as $rowKey => $row) {
+						
+						// traverse all rows in the current ORM except for the last
+						if ($rowKey != count($currentORM) - 1) {
+							$firstDay = date_create_from_format("Y-m-d", $row["Date"]);
+							$firstValue = $row["Value"];
+							$lastDay = date_create_from_format("Y-m-d", $currentORM[$rowKey + 1]["Date"]);
+							$lastValue = $currentORM[$rowKey + 1]["Value"];
+							$valueDiff = $lastValue - $firstValue;
+							
+							$interval = $firstDay -> diff($lastDay);
+							$intInterval = intval($interval -> format("%a"));
+							
+							$currentDay = $firstDay;
+							$timeFraction = 0;
+							
+							while ($currentDay < $lastDay) {
+								$newRow = array();
+								foreach ($workingTableHeaders as $header) {
+									switch($header) {
+										case "id" :
+                                        // we let MySQL decide the new id
+                                        $newRow[$header] = "";
+                                        break;
+										case "Date" :
+                                        $newRow[$header] = $currentDay -> format('Y-m-d');
+                                        break;
+										case "Value" :
+                                        $newRow[$header] = $firstValue + ($timeFraction * $valueDiff);
+                                        break;
+										case "Compilation_Id" :
+                                        $newRow[$header] = $compilationId;
+                                        break;
+										default :
+                                        $newRow[$header] = $row[$header];
+									}
+								}
+								
+								$queryArray[] = $newRow;
+								
+								// preparing for the next step
+								$currentDay = $currentDay -> modify('+ 1 day');
+								$timeFraction = $timeFraction + (1 / $intInterval);
+							}
+						}
+					}
+					Helper::sql_insert_array($queryArray, "osdb_working");
+					
+				}
+				echo "<br>";
+			}
+			
+		}
+		
+		/*
+			/* ###################################################
+			/* sql_add_columns
+			/* ###################################################
+		*/
+		public static function sql_add_columns($sqlTable, $columns) {
+			$dummyRow = ORM::for_table($sqlTable) -> create();
+			$dummyRow -> save();
+			$dummyRowId = $dummyRow -> id();
+			$sql_table = ORM::for_table($sqlTable) -> find_one() -> as_array();
+			
+			foreach ($columns as $column) {
+				if (!(array_key_exists($column, $sql_table))) {
+					$query = "ALTER TABLE " . $sqlTable . " ADD COLUMN " . $column . " TINYTEXT";
+					ORM::for_table($sqlTable) -> raw_execute($query);
+				}
+			}
+			
+			$dummyRow = ORM::for_table($sqlTable) -> find_one($dummyRowId);
+			$dummyRow -> delete();
+			
+		}
+		
+		/*
+			/* ###################################################
+			/* filter_for_value
+			/* ###################################################
+		*/
+		public static function filter_for_value($array, $key, $values) {
+			// goes through each element of an 2d-array and returns only those rows where the element $key is $value
+			
+			if (gettype($values) != "array") {
+				$values = array($values);
+			}
+			
+			$newArray = array_filter($array, function($arrayRow) use ($key, $values) {
+				return (is_array($arrayRow) && in_array($arrayRow[$key], $values));
+			});
+			
+			return $newArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* sql_select_columns
+			/* ###################################################
+		*/
+		public static function sql_select_columns($array, $columns, $alwaysAsArray = FALSE) {
+			if (gettype($columns) != "array") {
+				$columns = array($columns);
+			}
+			$newArray = array();
+			
+			foreach ($array as $rowKey => $row) {
+				if (gettype($row) != "array") {
+					$row = array($rowKey => $row);
+				}
+				
+				foreach ($row as $colKey => $cell) {
+					if (in_array($colKey, $columns)) {
+						if (count($columns) > 1 || $alwaysAsArray) {
+							$newArray[$rowKey][$colKey] = $cell;
+						}
+						else {
+							$newArray[$rowKey] = $cell;
+						}
+					}
+				}
+			}
+			return $newArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* sql_get_columnNames
+			/* ###################################################
+		*/
+		public static function sql_get_columnNames($sqlTable) {
+			$dummyRow = ORM::for_table($sqlTable) -> create();
+			$dummyRow -> save();
+			$dummyRowId = $dummyRow -> id();
+			$sqlColumns = array_keys(ORM::for_table($sqlTable) -> find_one() -> as_array());
+			
+			$dummyRow = ORM::for_table($sqlTable) -> find_one($dummyRowId);
+			$dummyRow -> delete();
+			
+			return $sqlColumns;
+		}
+		
+		/*
+			/* ###################################################
+			/* add_or_subtract
+			/* ###################################################
+		*/
+		public static function add_or_subtract($array, $method, $onlyCommonDates = TRUE) {
+			$allDates = array();
+			foreach ($array as $compilationId => $rowsBelongingToCompilation) {
+				$array[$compilationId] = Helper::rebuild_keys($array[$compilationId], "Date");
+				// $newDates = Helper::sql_select_columns($rowsBelongingToCompilation, "Date");
+				$allDates = array_merge($allDates, array_keys($array[$compilationId]));
+				
+			}
+			$allDates = array_unique($allDates);
+			sort($allDates);
+			
+			$returnArray = array();
+			
+			foreach ($allDates as $date) {
+				$newRow = array();
+				foreach ($array as $compilationId => $rowsBelongingToCompilation) {
+					if (isset($array[$compilationId][$date])) {
+						$newRow[] = $array[$compilationId][$date]["Value"];
+					}
+					else {
+						$newRow[] = NULL;
+					}
+				}
+				if (!$onlyCommonDates || array_filter($newRow) === $newRow) {
+					if ($method == "Subtract") {
+						for ($i = 1; $i < count($newRow); $i++) {
+							$newRow[$i] = -1 * $newRow[$i];
+						}
+					}
+					$returnArray[] = array(
+                    "Date" => $date,
+                    "Value" => array_sum($newRow)
+					);
+				}
+			}
+			return $returnArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* concat_time_series
+			/* ###################################################
+		*/
+		public static function concat_time_series($array) {
+			
+			$allDates = array();
+			$array = call_user_func_array("array_merge", $array);
+			$allDates = array_unique(Helper::sql_select_columns($array, "Date"));
+			sort($allDates);
+			
+			$newArray = array();
+			foreach ($allDates as $dateKey => $date) {
+				$rowsWithRightDate = Helper::filter_for_value($array, "Date", $date);
+				
+				if (count($rowsWithRightDate) == 1) {
+					$rowsWithRightDate = reset($rowsWithRightDate);
+					$newArray[] = array(
+                    "Date" => $date,
+                    "Value" => $rowsWithRightDate["Value"],
+                    "Time_Accuracy" => $rowsWithRightDate["Time_Accuracy"]
+					);
+					
+				}
+				else {
+					$lowestAccuracy = min(Helper::sql_select_columns($rowsWithRightDate, "Time_Accuracy"));
+					$rowWithLowestAccuracy = reset(Helper::filter_for_value($rowsWithRightDate, "Time_Accuracy", $lowestAccuracy));
+					$newArray[] = array(
+                    "Date" => $date,
+                    "Value" => $rowWithLowestAccuracy["Value"],
+                    "Time_Accuracy" => $rowWithLowestAccuracy["Time_Accuracy"]
+					);
+				}
+			}
+			
+			return $newArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* combine_data
+			/* ###################################################
+		*/
+		public static function combine_data($compilationIdArray, $method, $newName, $changeArray, $onlyCommonDates) {
+			
+			//creating a subgroup with only the relevant compilations
+			foreach ($compilationIdArray as $compilationId) {
+				$array[$compilationId] = ORM::for_table("osdb_working") -> order_by_asc('Date') -> where("Compilation_Id", $compilationId) -> find_array();
+			}
+			
+			$firstRow = reset(reset($array));
+			$sourceId = $firstRow["Source_Id"];
+			
+			if (in_array($method, array(
+            "Add",
+            "Subtract"
+			))) {
+				$newDateAndValues = Helper::add_or_subtract($array, $method, $onlyCommonDates);
+				
+			}
+			elseif ($method == "Concatenate") {
+				$newDateAndValues = Helper::concat_time_series($array);
+			}
+			
+			$firstRow = reset($newDateAndValues);
+			$lastRow = end($newDateAndValues);
+			$timePeriod = reset(explode("-", $firstRow["Date"])) . "-" . reset(explode("-", $lastRow["Date"]));
+			
+			$newCompilation = ORM::for_table('osdb_compilations') -> create();
+			$newCompilation -> Name = $newName;
+			$newCompilation -> Source_Id = $sourceId;
+			$newCompilation -> TimePeriod = $timePeriod;
+			$newCompilation -> save();
+			$newCompilationId = $newCompilation -> id();
+			
+			$headers = Helper::sql_get_columnNames("osdb_working");
+			$changeArray = array_combine($headers, $changeArray);
+			$changeArray = array_filter($changeArray);
+			
+			foreach ($changeArray as $key => $valueToChange) {
+				$firstRow[$key] = $valueToChange;
+			}
+			foreach ($newDateAndValues as $rowKey => $row) {
+				foreach ($headers as $headerKey => $header) {
+					
+					switch ($header) {
+						case 'id' :
+                        $value = "";
+                        break;
+						case 'Compilation_Id' :
+                        $value = $newCompilationId;
+                        break;
+						case 'Source_Id' :
+                        $value = $sourceId;
+                        break;
+						case 'Date' :
+                        $value = $row["Date"];
+                        break;
+						case 'Value' :
+                        $value = $row["Value"];
+                        break;
+						case 'Time_Accuracy' :
+                        if ($method == "Concatenate") {
+                            $value = $row["Time_Accuracy"];
+						}
+						
+						default :
+                        if (isset($firstRow[$header]) && !isset($value)) {
+                            $value = $firstRow[$header];
+						}
+                        else {
+                            $value = NULL;
+						}
+						
+                        break;
+					}
+					
+					$newArray[$rowKey][$header] = $value;
+				}
+			}
+			Helper::sql_insert_array($newArray, "osdb_working");
+			
+		}
+		
+		/*
+			/* ###################################################
+			/* shorten_names
+			/* ###################################################
+		*/
+		public static function shorten_names($inputArray) {
+			
+			$ORM = ORM::for_table("osdb_synonyms") -> find_array();
+			$returnArray = $inputArray;
+			
+			// flatten array one level
+			
+			foreach ($ORM as $ORMKey => $ORMRow) {
+				$returnArray = str_replace($ORMRow["Synonym"], $ORMRow["Replacement"], $returnArray);
+			}
+			return $returnArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* sql_insert_array
+			/* ###################################################
+		*/
+		public static function sql_insert_array($array, $sqlTable, $maxString = 5000, $updateLog = TRUE) {
+			//echo print_r($array) .  "<br>";
+			if (count($array) < 1) {
+				echo "Empty array given! <br>";
+				return;
+			}
+			
+			$headers = array_keys(reset($array));
+			
+			Helper::sql_add_columns($sqlTable, $headers);
+			
+			$queryStart = "INSERT INTO " . $sqlTable . " (" . implode(" , ", $headers) . ") VALUES ";
+			$query = "";
+			
+			foreach ($array as $rowKey => $row) {
+				$newRow = array();
+				foreach ($row as $colKey => $cell) {
+					switch ($colKey) {
+						case "id" :
+                        // we let MySQL decide the new id
+                        $newRow[$colKey] = "";
+                        break;
+						default :
+                        $newRow[$colKey] = $cell;
+					}
+				}
+				$newRow = "('" . implode("' , '", $newRow) . "'),";
+				$query .= $newRow;
+				
+				if (strlen($query) > $maxString) {
+					$totalQuery = $queryStart . rtrim($query, ",") . ";";
+					ORM::for_table($sqlTable) -> raw_execute($totalQuery);
+					$query = "";
+				}
+			}
+			//add the rest
+			if (strlen($query) > 2) {
+				$totalQuery = $queryStart . rtrim($query, ",") . ";";
+				
+				ORM::for_table($sqlTable) -> raw_execute($totalQuery);
+			}
+			if ($updateLog) {
+				if (ORM::for_table('osdb_logs') -> count() > 50000) {
+					ORM::for_table("osdb_logs") -> raw_execute("TRUNCATE TABLE osdb_logs;");
+				}
+				date_default_timezone_set("UTC");
+				$newEntry = ORM::for_table("osdb_logs") -> create();
+				$newEntry -> Table = $sqlTable;
+				$newEntry -> Timestamp = date("Y-m-d\TH:i:s", time());
+				$newEntry -> save();
+			}
+		}
+		
+		/*
+			/* ###################################################
+			/* add_tags
+			/* ###################################################
+		*/
+		public static function add_tags($compilationIdArray, $tagArray, $newTags) {
+			
+			$newTags = explode(",", $newTags);
+			
+			$tagArray = array_merge($tagArray, $newTags);
+			$tagArray = array_filter($tagArray);
+			foreach ($compilationIdArray as $compilationId) {
+				foreach ($tagArray as $tag) {
+					$queryArray[] = array(
+                    "id" => "",
+                    "Name" => $tag,
+                    "Compilation_Id" => $compilationId
+					);
+				}
+			}
+			Helper::sql_insert_array($queryArray, "osdb_tags");
+			Helper::sql_remove_duplicates("osdb_tags");
+		}
+		
+		/*
+			/* ###################################################
+			/* remove_tags
+			/* ###################################################
+		*/
+		public static function remove_tags($compilationIdArray, $tagArray) {
+			
+			foreach ($compilationIdArray as $compilationId) {
+				foreach ($tagArray as $tag) {
+					ORM::for_table('osdb_tags') -> where('Name', $tag) -> where('Compilation_Id', $compilationId) -> delete_many();
+				}
+			}
+		}
+		
+		/*
+			/* ###################################################
+			/* sort_by
+			/* ###################################################
+			* needs function make_comparer
+			
+			public static function sort_by($arrayToSort, $column, $order = SORT_ASC) {
+			$array = $arrayToSort;
+			usort($array, make_comparer(array(
+            $column,
+            $order
+			)));
+			
+			return $array;
+			}
+			
+			/*
+			/* ###################################################
+			/* calculate_errors
+			/* ###################################################
+		*/
+		public static function calculate_errors($mainId, $compilationId, $startDate, $endDate) {
+			
+			$mainArray = ORM::for_table("osdb_working") -> where("Compilation_Id", $mainId) -> where_gte("Date", $startDate) -> where_lt("Date", $endDate) -> find_array();
+			if (count($mainArray) > 0) {
+				$mainArray = Helper::rebuild_keys($mainArray, "Date");
+				$mainDates = array_keys($mainArray);
+				
+				$compArray = ORM::for_table("osdb_working") -> where("Compilation_Id", $compilationId) -> where_gte("Date", $startDate) -> where_lt("Date", $endDate) -> find_array();
+				
+				if (count($compArray) > 0) {
+					$compArray = Helper::rebuild_keys($compArray, "Date");
+					$firstRow = reset($compArray);
+					$publicationDate = ORM::for_table("osdb_sources") -> find_one($firstRow["Source_Id"]) -> PublicationDate;
+					$prognosisDates = Helper::filter_dates($mainDates, $publicationDate);
+					if (count($prognosisDates) > 0) {
+						$publicationDate = new DateTime($publicationDate);
+						
+						$errorArray = array();
+						foreach ($prognosisDates as $date) {
+							if (isset($compArray[$date])) {
+								$yRow = $compArray[$date];
+								
+								$xRow = $mainArray[$date];
+								
+								$errorRow["Date"] = $xRow["Date"];
+								$errorRow["Error"] = $yRow["Value"] - $xRow["Value"];
+								if ($xRow["Value"] != 0) {
+									$errorRow["ErrorPercentage"] = $errorRow["Error"] / $xRow["Value"];
+								}
+								else {
+									$errorRow["ErrorPercentage"] = "";
+								}
+								
+								$xDate = new DateTime($xRow["Date"]);
+								$diff = $xDate -> diff($publicationDate);
+								
+								$errorRow["Day"] = $diff -> format('%a');
+								
+								$errorRow["Main_Id"] = $mainId;
+								$errorRow["Compilation_Id"] = $compilationId;
+								
+								$errorArray[] = $errorRow;
+							}
+						}
+						Helper::sql_insert_array($errorArray, "osdb_errors");
+					}
+					
+				}
+			}
+			
+		}
+		
+		/*
+			/* ###################################################
+			/* dateRange
+			/* ###################################################
+		*/
+		public static function dateRange($first, $last, $step = "+1 day", $format = "Y-m-d", $addLast = TRUE) {
+			
+			$step = date_interval_create_from_date_string($step);
+			
+			$dates = array();
+			$current = date_create_from_format($format, $first);
+			$last = date_create_from_format($format, $last);
+			
+			while ($current <= $last) {
+				$dates[] = $current -> format($format);
+				$current = date_add($current, $step);
+			}
+			
+			if ($addLast && end($dates) != $last) {
+				$dates[] = $last -> format($format);
+			}
+			
+			return $dates;
+		}
+		
+		/*
+			/* ###################################################
+			/* filter_dates
+			/* ###################################################
+		*/
+		public static function filter_dates($dates, $constantDate, $after = TRUE) {
+			
+			$returnDates = array();
+			foreach ($dates as $dateToCheck) {
+				$dateIsAfter = strtotime($dateToCheck) > strtotime($constantDate);
+				if ($after == $dateIsAfter) {
+					$returnDates[] = $dateToCheck;
+				}
+			}
+			
+			return $returnDates;
+		}
+		
+		/*
+			/* ###################################################
+			/* rebuild_keys
+			/* ###################################################
+		*/
+		public static function rebuild_keys($array, $key) {
+			/* rebuilds a two-dimensional array to have a certain value from each "row" as each key
+				usage: $array = array([0]=>array("Fruit"=>"Banana", "Taste"=>"good"),
+				[1]=>array("Fruit"=>"Apple", "Taste"=>"boring"));
+			$newArray = rebuild_keys($array, "Fruit"); */
+			
+			$newArray = array();
+			foreach ($array as $rowKey => $arrayRow) {
+				if (isset($newArray[$arrayRow[$key]])) {
+					$duplicate[] = $rowKey;
+				}
+				else {
+					$newArray[$arrayRow[$key]] = $arrayRow;
+				}
+			}
+			if (isset($duplicate)) {
+				echo "Error: The key you specified is not unique. Some values appear at least twice. Invalid keys at row " . implode(", ", $duplicate);
+			}
+			else {
+				return $newArray;
+			}
+		}
+		
+		/*
+			/* ###################################################
+			/* establish_calculation_table
+			/* ###################################################
+		*/
+		public static function establish_calculation_table($type, $stepLength = 0) {
+			
+			/* first we establish the queue for the error calculation */
+			if ($type == "errors") {
+				// number of days that are analyzed in each day. If memory problems appear, reduce the step size
+				$stepLength = "+ " . $stepLength . " days";
+				
+				/* First, create combination Array with all possible
+				* combinations of compilations that have to be compared to other mainCompilations */
+				
+				$compilationIdArray = Helper::sql_select_columns(ORM::for_table('osdb_tags') -> distinct() -> where("Name", "analyzed") -> find_array(), "Compilation_Id");
+				$mainCompIdArray = Helper::sql_select_columns(ORM::for_table('osdb_tags') -> distinct() -> where("Name", "Basis") -> find_array(), "Compilation_Id");
+				
+				/* Now, create a $combinationArray that contains all possible combinations of a mainCompilation (the reference)
+				* and a normal compilation */
+				$combinationArray = array();
+				foreach ($mainCompIdArray as $mainId) {
+					foreach ($compilationIdArray as $compId) {
+						$combinationArray[] = array(
+                        $mainId,
+                        $compId
+						);
+					}
+				}
+				/* Now, create an array allPossibleDates that divides the whole time series into
+				* shorter steps to minimize calculation costs for each step */
+				foreach ($compilationIdArray as $key => $compilationId) {
+					$newFirstDate[$key] = Helper::sql_select_columns(ORM::for_table("osdb_working") -> where("Compilation_Id", $compilationId) -> order_by_asc('Date') -> find_one() -> as_array(), "Date");
+					$newLastDate[$key] = Helper::sql_select_columns(ORM::for_table("osdb_working") -> where("Compilation_Id", $compilationId) -> order_by_desc('Date') -> find_one() -> as_array(), "Date");
+				}
+				sort($newFirstDate);
+				sort($newLastDate);
+				$firstDate = reset($newFirstDate);
+				$lastDate = end($newLastDate);
+				$allPossibleDates = Helper::dateRange($firstDate["Date"], $lastDate["Date"], $stepLength);
+				for ($i = 1; $i < count($allPossibleDates); $i++) {
+					$inputArray = array();
+					$startDate = $allPossibleDates[$i - 1];
+					$endDate = $allPossibleDates[$i];
+					foreach ($combinationArray as $combination) {
+						$inputArray[] = array(
+                        "type" => "errors",
+                        "startDate" => $startDate,
+                        "endDate" => $endDate,
+                        "mainCompId" => $combination[0],
+                        "compId1" => $combination[1],
+                        "compId2" => "",
+                        "Day" => ""
+						);
+					}
+					Helper::sql_insert_array($inputArray, "osdb_errors_to_calculate");
+				}
+			}
+			/* # statistics ################################################## */
+			
+			elseif ($type == "statistics") {
+				/* secondly we establish the queue for the performance statistics of each compilation in comparison to
+				* the "real" values  */
+				
+				$combinationIdArray = ORM::for_table('osdb_errors') -> distinct() -> select_many("Main_Id", "Compilation_Id") -> find_array();
+				/* now we'll try to find the maximum of computable days for each error series.
+				* These will be the "categories"*/
+				foreach ($combinationIdArray as $combination) {
+					$maxDay = ORM::for_table('osdb_errors') -> where("Main_Id", $combination["Main_Id"]) -> where("Compilation_Id", $combination["Compilation_Id"]) -> order_by_desc('Day') -> find_one();
+					$maxDayArray[] = $maxDay -> Day;
+				}
+				$maxDayArray = array_unique($maxDayArray);
+				sort($maxDayArray);
+				$ini_array = parse_ini_file("config.ini");
+				
+				$maxDayArray = Helper::create_relevant_day_array($maxDayArray);
+				$ini_array["maxDayArray"] = implode(",", $maxDayArray);
+				Helper::write_to_config($ini_array);
+				
+				$mainIdArray = array_unique(Helper::sql_select_columns($combinationIdArray, "Main_Id"));
+				
+				foreach ($mainIdArray as $key => $mainCompId) {
+					$validErrorCompilations = Helper::filter_for_value($combinationIdArray, "Main_Id", $mainCompId);
+					$validErrorCompilations = Helper::sql_select_columns($validErrorCompilations, "Compilation_Id");
+					$validErrorCompilations = array_unique($validErrorCompilations);
+					$compilationsToCompare = Helper::create_matchings($validErrorCompilations);
+					$inputArray = array();
+					
+					/* now all possible combinations of two compilations
+					* are compared against each other, like in a tournament */
+					foreach ($compilationsToCompare as $combination) {
+						/* we'll find out which is the maximum amount of days that these two compilations can
+						* be compared against each other */
+						$compId1 = $combination[0];
+						$compId2 = $combination[1];
+						$maxDay1 = ORM::for_table('osdb_errors') -> where("Main_Id", $mainCompId) -> where("Compilation_Id", $compId1) -> order_by_desc('Day') -> find_one() -> Day;
+						$maxDay2 = ORM::for_table('osdb_errors') -> where("Main_Id", $mainCompId) -> where("Compilation_Id", $compId2) -> order_by_desc('Day') -> find_one() -> Day;
+						$maxDay = min($maxDay1, $maxDay2);
+						$inputArray[] = array(
+                        "type" => "statistics",
+                        "startDate" => "",
+                        "endDate" => "",
+                        "mainCompId" => $mainCompId,
+                        "compId1" => $compId1,
+                        "compId2" => $compId2,
+                        "Day" => $maxDay
+						);
+						echop(reset($inputArray));
+					}
+					Helper::sql_insert_array($inputArray, "osdb_errors_to_calculate");
+				}
+				
+			}
+		}
+		
+		/*
+			/* ###################################################
+			/* calculate_ranking
+			/* ###################################################
+		*/
+		public static function calculate_ranking($mainCompId, $compId1, $compId2, $Day) {
+			/* evaluates the errors in the table "errors" and calculates a mean differential and some other
+				* statistical values for a certain array of days.
+				* The results are entered into osdb_ranking
+				*
+				* See chapter "Comparing prognoses" in  https://github.com/fridde/PerformanceRecordsArticle
+			* */
+			$ini_array = parse_ini_file("config.ini");
+			$allRelevantDays = explode(",", $ini_array["maxDayArray"]);
+			
+			$firstCompilation = ORM::for_table('osdb_errors') -> where("Main_Id", $mainCompId) -> where("Compilation_Id", $compId1) -> order_by_asc('Day') -> find_array();
+			$firstCompilation = Helper::rebuild_keys($firstCompilation, "Day");
+			$secondCompilation = ORM::for_table('osdb_errors') -> where("Main_Id", $mainCompId) -> where("Compilation_Id", $compId2) -> order_by_asc('Day') -> find_array();
+			$secondCompilation = Helper::rebuild_keys($secondCompilation, "Day");
+			
+			$today = 0;
+			$errorDiff = array();
+			$arrayToAdd = array();
+			while ($today <= $Day) {
+				$today++;
+				if (isset($firstCompilation[$today]) && isset($secondCompilation[$today])) {
+					$errorDiff[$today] = pow($firstCompilation[$today]["ErrorPercentage"], 2) - pow($secondCompilation[$today]["ErrorPercentage"], 2);
+				}
+				// below are default values
+				$meanDifferential = 0;
+				$errorStatistic = 0;
+				if (count($errorDiff) > 0) {
+					$meanDifferential = array_sum($errorDiff) / count($errorDiff);
+					$autocovariance = Helper::autocovariance($errorDiff);
+					if ($autocovariance != 0) {
+						$errorStatistic = $meanDifferential / sqrt($autocovariance);
+					}
+				}
+				
+				if (in_array($today, $allRelevantDays) && $meanDifferential != 0 && $errorStatistic != 0) {
+					$arrayToAdd[] = array(
+                    "Main_Id" => $mainCompId,
+                    "Compilation_1" => $compId1,
+                    "Compilation_2" => $compId2,
+                    "Day" => $today,
+                    "Mean_Differential" => $meanDifferential,
+                    "ErrorStatistic" => $errorStatistic
+					);
+				}
+			}
+			if (count($arrayToAdd) > 0) {
+				Helper::sql_insert_array($arrayToAdd, "osdb_ranking");
+			}
+		}
+		
+		/*
+			/* ###################################################
+			/* autocovariance
+			/* ###################################################
+		*/
+		public static function autocovariance($array, $stepSize = 1) {
+			$array = array_values($array);
+			$mean = array_sum($array) / count($array);
+			$sum = 0;
+			for ($i = 0; $i < count($array) - $stepSize; $i++) {
+				$sum += ($array[$i] - $mean) * ($array[$i + $stepSize] - $mean);
+			}
+			$covariance = $sum / count($array);
+			return $covariance;
+		}
+		
+		/*
+			
+			/*
+			/* ###################################################
+			/* remove_source_from_database
+			/* ###################################################
+		*/
+		public static function remove_source_from_database($sourceId, $archive = TRUE) {
+			
+			$compilations = ORM::for_table("osdb_working") -> where("Source_Id", $sourceId) -> select("Compilation_Id") -> find_array();
+			$compilations = array_unique($compilations, SORT_REGULAR);
+			$tables = array(
+            "compilations" => "Source_Id",
+            "data" => "Source_Id",
+            "errors" => array(
+			"Main_Id",
+			"Compilation_Id"
+            ),
+            "ranking" => array(
+			"Main_Id",
+			"Compilation_1",
+			"Compilation_2"
+            ),
+            "tags" => "Compilation_Id",
+            "working" => array(
+			"Compilation_Id",
+			"Source_Id"
+            )
+			);
+			
+			foreach ($tables as $tableName => $columns) {
+				if (gettype($columns) == "string") {
+					$columns = array($columns);
+				}
+				foreach ($columns as $columnName) {
+					if (in_array($columnName, array(
+                    "Main_Id",
+                    "Compilation_Id",
+                    "Compilation_1",
+                    "Compilation_2"
+					))) {
+						foreach ($compilations as $compilationId) {
+							$compilationId = $compilationId["Compilation_Id"];
+							ORM::for_table('osdb_' . $tableName) -> where_equal($columnName, $compilationId) -> delete_many();
+						}
+					}
+					else {
+						ORM::for_table('osdb_' . $tableName) -> where_equal($columnName, $sourceId) -> delete_many();
+					}
+				}
+			}
+			if ($archive) {
+				$source = ORM::for_table("osdb_sources") -> find_one($sourceId);
+				$source -> Archived = 1;
+				$source -> save();
+			}
+			
+		}
+		
+		/*
+			/* ###################################################
+			/* remove_compilation_from_database
+			/* ###################################################
+		*/
+		public static function remove_compilation_from_database($compilationId) {
+			
+			$tables = array(
+            "compilations" => "id",
+            "errors" => "Compilation_Id",
+            "ranking" => array(
+			"Main_Id",
+			"Compilation_1",
+			"Compilation_2"
+            ),
+            "tags" => "Compilation_Id",
+            "working" => "Compilation_Id"
+			);
+			
+			foreach ($tables as $tableName => $columns) {
+				if (gettype($columns) == "string") {
+					$columns = array($columns);
+				}
+				foreach ($columns as $columnName) {
+					ORM::for_table('osdb_' . $tableName) -> where_equal($columnName, $compilationId) -> delete_many();
+				}
+			}
+		}
+		
+		/*
+			/* ###################################################
+			/* create_matchings
+			/* ###################################################
+		*/
+		public static function create_matchings($array) {
+			/* creates a 1-on-1 matching for each element in the array, so that every element is paired with each element once  */
+			$returnArray = array();
+			foreach ($array as $firstNumber) {
+				foreach ($array as $secondNumber) {
+					if ($firstNumber < $secondNumber) {
+						$arrayToAdd = array(
+                        $firstNumber,
+                        $secondNumber
+						);
+					}
+					else {
+						$arrayToAdd = array(
+                        $secondNumber,
+                        $firstNumber
+						);
+					}
+					if ($firstNumber != $secondNumber && !in_array($arrayToAdd, $returnArray)) {
+						$returnArray[] = $arrayToAdd;
+					}
+				}
+			}
+			return $returnArray;
+		}
+		
+		/*
+			/* ###################################################
+			/* array_to_csv_download
+			/* ###################################################
+		*/
+		public static function array_to_csv_download($array, $filename = "export.csv", $delimiter = ";") {
+			
+			// open raw memory as file so no temp files needed, you might run out of memory though
+			$f = fopen('php://memory', 'w');
+			// loop over the input array
+			foreach ($array as $line) {
+				// generate csv lines from the inner arrays
+				fputcsv($f, $line, $delimiter, '"');
+			}
+			// rewind the "file" with the csv lines
+			fseek($f, 0);
+			// tell the browser it's going to be a csv file
+			header('Content-Type: application/csv');
+			// tell the browser we want to save it instead of displaying it
+			header('Content-Disposition: attachment; filename="' . $filename . '"');
+			// make php send the generated csv lines to the browser
+			fpassthru($f);
+		}
+		
+		/*
+			/* ###################################################
+			/* create_download
+			/* ###################################################
+		*/
+		public static function create_download($source, $filename = "export.csv") {
+			
+			$textFromFile = file_get_contents($source);
+			$f = fopen('php://memory', 'w');
+			fwrite($f, $textFromFile);
+			fseek($f, 0);
+			
+			header('Content-Type: text/plain');
+			header('Content-Disposition: attachment; filename="' . $filename . '"');
+			// make php send the generated csv lines to the browser
+			fpassthru($f);
+		}
+		
+		/*
+			/* ###################################################
+			/* find_matching_project
+			/* ###################################################
+		*/
+		public static function find_matching_project($projectNameArray, $format = "I Y - P - C P") {
+			/* tries to find the best matching Oil Sand Project for an array of project names.
+				* The "official" project List is in a SQL-Table called osdb_projects
+			* the format abbreviations are Institution Year - Product - Company Project */
+			
+			if (gettype($projectNameArray) != "array") {
+				$projectNameArray = array($projectNameArray);
+			}
+			
+			$projectTable = ORM::for_table("osdb_projects") -> find_array();
+			$projectTable = Helper::rebuild_keys($projectTable, "id");
+			
+			switch($format) {
+				case "I Y - P - C P" :
+                foreach ($projectNameArray as $key => $value) {
+                    $value = explode("-", $value);
+                    if (count($value) == 3) {
+                        $projectNameArray[$key] = trim($value[2]);
+					}
+				}
+                foreach ($projectTable as $key => $projectRow) {
+                    $projectTable[$key]["SearchFor"] = $projectRow["Company"] . " " . $projectRow["Project"];
+				}
+                break;
+			}
+			
+			$searchFor = Helper::sql_select_columns($projectTable, "SearchFor");
+			
+			$returnArray = array();
+			
+			foreach ($projectNameArray as $projectName) {
+				
+				$bestMatch = Helper::find_most_similar($projectName, $searchFor, FALSE);
+				$matchingRow = Helper::filter_for_value($projectTable, "SearchFor", $bestMatch);
+				
+				if (count($matchingRow) == 1) {
+					$returnArray[] = $matchingRow;
+				}
+				else {
+					$returnArray[] = array();
+				}
+				
+			}
+			return $returnArray;
+			
+		}
+		
+		/*
+			/* ###################################################
+			/* write_to_config
+			/* ###################################################
+		*/
+		public static function write_to_config($configArray) {
+			$filename = "config.ini";
+			$text = "";
+			foreach ($configArray as $key => $value) {
+				if (gettype($value) == "array") {
+					$value = implode(",", $value);
+				}
+				$text .= $key . " = " . $value . "\r\n";
+			}
+			
+			$fh = fopen($filename, "w") or die("Could not open log file.");
+			fwrite($fh, $text) or die("Could not write file!");
+			fclose($fh);
+		}
+		
+		public static function create_relevant_day_array($dayArray) {
+			
+			$returnArray = array(reset($dayArray));
+			foreach ($dayArray as $day) {
+				$difference = $day - end($returnArray);
+				$cond1 = $day < 100 && $difference > 30;
+				$cond2 = $day < 1000 && $difference > 300;
+				$cond3 = $day >= 1000 && $difference > 600;
+				
+				if ($cond1 || $cond2 || $cond3) {
+					$returnArray[] = $day;
+				}
+			}
+			
+			return $returnArray;
+			
+		}
+		
+	}
+	
+	
+	class file_upload {
+		
+		var $the_file;
+		var $the_temp_file;
+		var $upload_dir;
+		var $replace;
+		var $do_filename_check = "n";
+		var $max_length_filename = 100;
+		var $extensions;
+		var $ext_string;
+		var $language;
+		var $http_error;
+		var $rename_file;
+		// if this var is true the file copy get a new name
+		var $file_copy;
+		// the new name
+		var $message = array();
+		var $create_directory = true;
+		
+		function file_upload() {
+			$this -> language = "en";
+			// choice of en, nl, es
+			$this -> rename_file = false;
+			$this -> ext_string = "";
+		}
+		
+		function show_error_string() {
+			$msg_string = "";
+			foreach ($this->message as $value) {
+				$msg_string .= $value . "<br>\n";
+			}
+			return $msg_string;
+		}
+		
+		function set_file_name($new_name = "") {// this "conversion" is used for unique/new filenames
+			if ($this -> rename_file) {
+				if ($this -> the_file == "")
+                return;
+				$name = ($new_name == "") ? strtotime("now") : $new_name;
+				$name = $name . $this -> get_extension($this -> the_file);
+				} else {
+				$name = $this -> the_file;
+			}
+			return $name;
+		}
+		
+		function upload($to_name = "") {
+			$new_name = $this -> set_file_name($to_name);
+			if ($this -> check_file_name($new_name)) {
+				if ($this -> validateExtension()) {
+					if (is_uploaded_file($this -> the_temp_file)) {
+						$this -> file_copy = $new_name;
+						if ($this -> move_upload($this -> the_temp_file, $this -> file_copy)) {
+							$this -> message[] = $this -> error_text($this -> http_error);
+							if ($this -> rename_file)
+                            $this -> message[] = $this -> error_text(16);
+							return true;
+						}
+						} else {
+						$this -> message[] = $this -> error_text($this -> http_error);
+						return false;
+					}
+					} else {
+					$this -> show_extensions();
+					$this -> message[] = $this -> error_text(11);
+					return false;
+				}
+				} else {
+				return false;
+			}
+		}
+		
+		function check_file_name($the_name) {
+			if ($the_name != "") {
+				if (strlen($the_name) > $this -> max_length_filename) {
+					$this -> message[] = $this -> error_text(13);
+					return false;
+					} else {
+					if ($this -> do_filename_check == "y") {
+						if (preg_match("/^[a-z0-9_]*\.(.){1,5}$/i", $the_name)) {
+							return true;
+							} else {
+							$this -> message[] = $this -> error_text(12);
+							return false;
+						}
+						} else {
+						return true;
+					}
+				}
+				} else {
+				$this -> message[] = $this -> error_text(10);
+				return false;
+			}
+		}
+		
+		function get_extension($from_file) {
+			$ext = strtolower(strrchr($from_file, "."));
+			return $ext;
+		}
+		
+		function validateExtension() {
+			$extension = $this -> get_extension($this -> the_file);
+			$ext_array = $this -> extensions;
+			if (in_array($extension, $ext_array)) {
+				// check mime type hier too against allowed/restricted mime types (boolean check mimetype)
+				return true;
+				} else {
+				return false;
+			}
+		}
+		
+		// this method is only used for detailed error reporting
+		function show_extensions() {
+			$this -> ext_string = implode(" ", $this -> extensions);
+		}
+		
+		function move_upload($tmp_file, $new_file) {
+			umask(0);
+			if ($this -> existing_file($new_file)) {
+				$newfile = $this -> upload_dir . $new_file;
+				if ($this -> check_dir($this -> upload_dir)) {
+					if (move_uploaded_file($tmp_file, $newfile)) {
+						if ($this -> replace == "y") {
+							//system("chmod 0777 $newfile"); // maybe you need to use the system command in some cases...
+							chmod($newfile, 0777);
+							} else {
+							// system("chmod 0755 $newfile");
+							chmod($newfile, 0755);
+						}
+						return true;
+						} else {
+						return false;
+					}
+					} else {
+					$this -> message[] = $this -> error_text(14);
+					return false;
+				}
+				} else {
+				$this -> message[] = $this -> error_text(15);
+				return false;
+			}
+		}
+		
+		function check_dir($directory) {
+			if (!is_dir($directory)) {
+				if ($this -> create_directory) {
+					umask(0);
+					mkdir($directory, 0777);
+					return true;
+					} else {
+					return false;
+				}
+				} else {
+				return true;
+			}
+		}
+		
+		function existing_file($file_name) {
+			if ($this -> replace == "y") {
+				return true;
+				} else {
+				if (file_exists($this -> upload_dir . $file_name)) {
+					return false;
+					} else {
+					return true;
+				}
+			}
+		}
+		
+		function get_uploaded_file_info($name) {
+			$str = "File name: " . basename($name) . "\n";
+			$str .= "File size: " . filesize($name) . " bytes\n";
+			if (function_exists("mime_content_type")) {
+				$str .= "Mime type: " . mime_content_type($name) . "\n";
+			}
+			if ($img_dim = getimagesize($name)) {
+				$str .= "Image dimensions: x = " . $img_dim[0] . "px, y = " . $img_dim[1] . "px\n";
+			}
+			return $str;
+		}
+		
+		// this method was first located inside the foto_upload extension
+		function del_temp_file($file) {
+			$delete = @unlink($file);
+			clearstatcache();
+			if (@file_exists($file)) {
+				$filesys = eregi_replace("/", "\\", $file);
+				$delete = @system("del $filesys");
+				clearstatcache();
+				if (@file_exists($file)) {
+					$delete = @chmod($file, 0775);
+					$delete = @unlink($file);
+					$delete = @system("del $filesys");
+				}
+			}
+		}
+		
+		// some error (HTTP)reporting, change the messages or remove options if you like.
+		function error_text($err_num) {
+			switch ($this->language) {
+				case "nl" :
+                $error[0] = "Foto succesvol kopieert.";
+                $error[1] = "Het bestand is te groot, controlleer de max. toegelaten bestandsgrootte.";
+                $error[2] = "Het bestand is te groot, controlleer de max. toegelaten bestandsgrootte.";
+                $error[3] = "Fout bij het uploaden, probeer het nog een keer.";
+                $error[4] = "Fout bij het uploaden, probeer het nog een keer.";
+                $error[10] = "Selecteer een bestand.";
+                $error[11] = "Het zijn alleen bestanden van dit type toegestaan: <b>" . $this -> ext_string . "</b>";
+                $error[12] = "Sorry, de bestandsnaam bevat tekens die niet zijn toegestaan. Gebruik alleen nummer, letters en het underscore teken. <br>Een geldige naam eindigt met een punt en de extensie.";
+                $error[13] = "De bestandsnaam is te lang, het maximum is: " . $this -> max_length_filename . " teken.";
+                $error[14] = "Sorry, het opgegeven directory bestaat niet!";
+                $error[15] = "Uploading <b>" . $this -> the_file . "...Fout!</b> Sorry, er is al een bestand met deze naam aanwezig.";
+                $error[16] = "Het gekopieerde bestand is hernoemd naar <b>" . $this -> file_copy . "</b>.";
+                break;
+				case "de" :
+                $error[0] = "Die Datei: <b>" . $this -> the_file . "</b> wurde hochgeladen!";
+                $error[1] = "Die hochzuladende Datei ist gr&ouml;&szlig;er als der Wert in der Server-Konfiguration!";
+                $error[2] = "Die hochzuladende Datei ist gr&ouml;&szlig;er als der Wert in der Klassen-Konfiguration!";
+                $error[3] = "Die hochzuladende Datei wurde nur teilweise &uuml;bertragen";
+                $error[4] = "Es wurde keine Datei hochgeladen";
+                $error[10] = "W&auml;hlen Sie eine Datei aus!.";
+                $error[11] = "Es sind nur Dateien mit folgenden Endungen erlaubt: <b>" . $this -> ext_string . "</b>";
+                $error[12] = "Der Dateiname enth&auml;lt ung&uuml;ltige Zeichen. Benutzen Sie nur alphanumerische Zeichen f&uuml;r den Dateinamen mit Unterstrich. <br>Ein g&uuml;ltiger Dateiname endet mit einem Punkt, gefolgt von der Endung.";
+                $error[13] = "Der Dateiname &uuml;berschreitet die maximale Anzahl von " . $this -> max_length_filename . " Zeichen.";
+                $error[14] = "Das Upload-Verzeichnis existiert nicht!";
+                $error[15] = "Upload <b>" . $this -> the_file . "...Fehler!</b> Eine Datei mit gleichem Dateinamen existiert bereits.";
+                $error[16] = "Die hochgeladene Datei ist umbenannt in <b>" . $this -> file_copy . "</b>.";
+                break;
+				//
+				// place here the translations (if you need) from the directory "add_translations"
+				//
+				default :
+                // start http errors
+                $error[0] = "File: <b>" . $this -> the_file . "</b> successfully uploaded!";
+                $error[1] = "The uploaded file exceeds the max. upload filesize directive in the server configuration.";
+                $error[2] = "The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the html form.";
+                $error[3] = "The uploaded file was only partially uploaded";
+                $error[4] = "No file was uploaded";
+                // end  http errors
+                $error[10] = "Please select a file for upload.";
+                $error[11] = "Only files with the following extensions are allowed: <b>" . $this -> ext_string . "</b>";
+                $error[12] = "Sorry, the filename contains invalid characters. Use only alphanumerical chars and separate parts of the name (if needed) with an underscore. <br>A valid filename ends with one dot followed by the extension.";
+                $error[13] = "The filename exceeds the maximum length of " . $this -> max_length_filename . " characters.";
+                $error[14] = "Sorry, the upload directory doesn't exist!";
+                $error[15] = "Uploading <b>" . $this -> the_file . "...Error!</b> Sorry, a file with this name already exitst.";
+                $error[16] = "The uploaded file is renamed to <b>" . $this -> file_copy . "</b>.";
+			}
+			return $error[$err_num];
+		}
+		
+	}
+	
+	//error_reporting(E_ALL);
+	$max_size = 1024 * 100;
+	// the max. size for uploading
+	
+	class multi_files extends file_upload {
+		
+		var $number_of_files = 0;
+		var $names_array;
+		var $tmp_names_array;
+		var $error_array;
+		var $wrong_extensions = 0;
+		var $bad_filenames = 0;
+		
+		function extra_text($msg_num) {
+			switch ($this->language) {
+				case "de" :
+                // add you translations here
+                break;
+				default :
+                $extra_msg[1] = "Error for: <b>" . $this -> the_file . "</b>";
+                $extra_msg[2] = "You have tried to upload " . $this -> wrong_extensions . " files with a bad extension, the following extensions are allowed: <b>" . $this -> ext_string . "</b>";
+                $extra_msg[3] = "Select at least on file.";
+                $extra_msg[4] = "Select the file(s) for upload.";
+                $extra_msg[5] = "You have tried to upload <b>" . $this -> bad_filenames . " files</b> with invalid characters inside the filename.";
+			}
+			return $extra_msg[$msg_num];
+		}
+		
+		// this method checkes the number of files for upload
+		// this example works with one or more files
+		function count_files() {
+			foreach ($this->names_array as $test) {
+				if ($test != "") {
+					$this -> number_of_files++;
+				}
+			}
+			if ($this -> number_of_files > 0) {
+				return true;
+				} else {
+				return false;
+			}
+		}
+		
+		function upload_multi_files() {
+			$this -> message = "";
+			if ($this -> count_files()) {
+				foreach ($this->names_array as $key => $value) {
+					if ($value != "") {
+						$this -> the_file = $value;
+						$new_name = $this -> set_file_name();
+						if ($this -> check_file_name($new_name)) {
+							if ($this -> validateExtension()) {
+								$this -> file_copy = $new_name;
+								$this -> the_temp_file = $this -> tmp_names_array[$key];
+								if (is_uploaded_file($this -> the_temp_file)) {
+									if ($this -> move_upload($this -> the_temp_file, $this -> file_copy)) {
+										$this -> message[] = $this -> error_text($this -> error_array[$key]);
+										if ($this -> rename_file)
+                                        $this -> message[] = $this -> error_text(16);
+										sleep(1);
+										// wait a seconds to get an new timestamp (if rename is set)
+									}
+									} else {
+									$this -> message[] = $this -> extra_text(1);
+									$this -> message[] = $this -> error_text($this -> error_array[$key]);
+								}
+								} else {
+								$this -> wrong_extensions++;
+							}
+							} else {
+							$this -> bad_filenames++;
+						}
+					}
+				}
+				if ($this -> bad_filenames > 0)
+                $this -> message[] = $this -> extra_text(5);
+				if ($this -> wrong_extensions > 0) {
+					$this -> show_extensions();
+					$this -> message[] = $this -> extra_text(2);
+				}
+				} else {
+				$this -> message[] = $this -> extra_text(3);
+			}
+		}
+		
+	}
+	
+	$multi_upload = new multi_files;
+	
+	$multi_upload -> upload_dir = $_SERVER['DOCUMENT_ROOT'] . "/WordCounter/files/";
+	// "files" is the folder for the uploaded files (you have to create this folder)
+	$multi_upload -> extensions = array(".png", ".zip", ".txt");
+	// specify the allowed extensions here
+	$multi_upload -> message[] = $multi_upload -> extra_text(4);
+	// a different standard message for multiple files
+	//$multi_upload->rename_file = true; // set to "true" if you want to rename all files with a timestamp value
+	$multi_upload -> do_filename_check = "n";
+	// check filename ...
+	
+	if (isset($_POST['Submit'])) {
+		$multi_upload -> tmp_names_array = $_FILES['upload']['tmp_name'];
+		$multi_upload -> names_array = $_FILES['upload']['name'];
+		$multi_upload -> error_array = $_FILES['upload']['error'];
+		$multi_upload -> replace = (isset($_POST['replace'])) ? $_POST['replace'] : "n";
+		// because only a checked checkboxes is true
+		$multi_upload -> upload_multi_files();
+	}
+	
+	function filter_words($wordArray, $rules) {
+		
+		foreach ($rules as $rule) {
+			$rule = array_map("trim", explode("=", $rule));
+			//echo print_r($rule) . "<br>";
+			$newArray = array();
+			switch ($rule[0]) {
+				
+				case 'Case_insensitive' :
+                if ($rule[1]) {
+                    foreach ($wordArray as $word => $occurrences) {
+                        if ($word === strtolower($word)) {
+                            if (isset($wordArray[ucwords($word)])) {
+                                $newArray[$word] = $wordArray[ucwords($word)] + $occurrences;
+								} else {
+                                $newArray[$word] = $occurrences;
+							}
+						}
+					}
+                    arsort($newArray);
+                    $wordArray = $newArray;
+				}
+                break;
+				
+				case "higher_than" :
+                foreach ($wordArray as $word => $occurrences) {
+                    if ($occurrences > $rule[1]) {
+                        $newArray[$word] = $occurrences;
+					}
+				}
+                $wordArray = $newArray;
+                break;
+				
+				case "exclude" :
+                $wordsToExclude = array_map("trim", explode(",", $rule[1]));
+				
+                foreach ($wordArray as $word => $occurrences) {
+                    if (!(in_array($word, $wordsToExclude))) {
+                        $newArray[$word] = $occurrences;
+					}
+				}
+                $wordArray = $newArray;
+                break;
+				
+				case "longer_than" :
+                foreach ($wordArray as $word => $occurrences) {
+                    if (strlen($word) > $rule[1]) {
+                        $newArray[$word] = $occurrences;
+					}
+				}
+                $wordArray = $newArray;
+				
+                break;
+				
+				case "max" :
+                $i = 0;
+                foreach ($wordArray as $word => $occurrences) {
+                    if ($i < $rule[1]) {
+                        $newArray[$word] = $occurrences;
+					}
+                    $i++;
+				}
+                $wordArray = $newArray;
+                break;
+			}
+		}
+		//echo print_r($wordArray) . "<br>";
+		return $wordArray;
+	}
+	
+	function calculate_frequencies($wordArray) {
+		foreach ($wordArray as $fileName => $content) {
+			$wordCount = $content["wordCount"];
+			$frequencyArray = $content["frequencies"];
+			foreach ($frequencyArray as $word => $occurrences) {
+				$frequencyArray[$word] = round(($occurrences / $wordCount) * 100, 2);
+			}
+			$wordArray[$fileName]["frequencies"] = $frequencyArray;
+		}
+		return $wordArray;
+	}
+	
+	function sort_according_to($wordArray, $name) {
+		
+		$normArray = array($name => $wordArray[$name]);
+		$otherArrays = array_diff_key($wordArray, $normArray);
+		
+		foreach ($otherArrays as $file => $frequencies) {
+			$frequencies = $frequencies["frequencies"];
+			$newArray = array();
+			
+			foreach ($normArray[$name]["frequencies"] as $word => $frequency) {
+				if (isset($frequencies[$word])) {
+					$newArray[$word] = $frequencies[$word];
+					} else {
+					$newArray[$word] = NULL;
+				}
+			}
+			$otherArrays[$file]["frequencies"] = $newArray;
+			
+		}
+		$returnArray = array_merge($normArray, $otherArrays);
+		return $returnArray;
+	}
+	
+	function rectify_wordArray($wordArray) {
+		$allWords = array();
+		foreach ($wordArray as $file => $array) {
+			$frequencies = $array["frequencies"];
+			$allWords = array_merge($allWords, array_keys($frequencies));
+		}
+		$allWords = array_unique($allWords);
+		
+		foreach ($wordArray as $file => $array) {
+			$frequencies = $array["frequencies"];
+			$newArray = array();
+			foreach ($allWords as $word) {
+				if (isset($frequencys[$word])) {
+					$newArray[$word] = $frequencys[$word];
+					} else {
+					$newArray[$word] = NULL;
+				}
+				$wordArray[$file] = $newArray;
+			}
+		}
+		
+		return $wordArray;
+	}
+	
+	function redirect($to) {
+		@session_write_close();
+		if (!headers_sent()) {
+			header("Location: $to");
+			flush();
+			exit();
+			} else {
+			print "<html><head><META http-equiv='refresh' content='0;URL=$to'></head><body><a href='$to'>$to</a></body></html>";
+			flush();
+			exit();
+		}
+	}
+	
+	function create_rules_from_ini($ini_array) {
+		
+		$rulesOptions = array("Case_insensitive", "higher_than", "exclude", "longer_than", "max");
+		
+		$rulesArray = array();
+		foreach ($ini_array as $key => $value) {
+			if (in_array($key, $rulesOptions)) {
+				$rulesArray[] = $key . " = " . $value;
+			}
+		}
+		return $rulesArray;
+	}
+	
+	function get_all_files($dir = 'files') {
+		$fileArray = array();
+		$handle = opendir("../" . $dir);
+		
+		while (false !== ($entry = readdir($handle))) {
+			if (!in_array($entry, array(".", ".."))) {
+				$fileArray[] = $entry;
+			}
+		}
+		closedir($handle);
+		sort($fileArray);
+		
+		return $fileArray;
+	}
+	
+	function logg($data, $infoText = "", $filename = "logg.txt") {
+		
+		$string = "\n--------------------------------\n";
+		$string .= date("Y-m-d H:i:s") . "\n";
+		$string .= "####" . $infoText;
+		$string .= "\n--------------------------------\n";
+		
+		if (is_string($data)) {
+			$string .= $data;
+			} elseif (is_array($data)) {
+			$string .= print_r($data, TRUE);
+			} else {
+			$string .= var_export($data, TRUE);
+		}
+		$string .= "\n----------------------------\n";
+		
+		file_put_contents($filename, $string, FILE_APPEND);
+	}
+	
+	/*
+		/* ###################################################
+		/* array_select_where
+		/* ###################################################
+	*/
+	
+	/* will search a 2-d array for rows where the criteria is matched, mimicking a sql-select-where statement
+		
+		the criteria is given as an array in the form array("relevantColumn1" => "neededValue1", ...)
+		
+		the negationArray contains all the columns where the criteria must NOT be matched
+		
+	*/
+	function array_select_where($array, $criteria, $negationArray = array()){
+		$returnArray = array();
+		foreach($array as $index => $row){
+			$rowIncluded = TRUE;
+			foreach($criteria as $criteriumToCheck => $valueToCheck){
+				if(in_array($criteriumToCheck, $negationArray)){
+					if($row[$criteriumToCheck] == $valueToCheck){
+						$rowIncluded = FALSE;
+					}
+				}
+				else {
+					if($row[$criteriumToCheck] != $valueToCheck){
+						$rowIncluded = FALSE;
+					}
+				}
+			}
+			if($rowIncluded){
+				$returnArray[$index] = $row;
+			}
+		}
+		
+		return $returnArray;
+	}
