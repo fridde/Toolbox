@@ -16,6 +16,4 @@ foreach($cdnFiles as $index => $cdnFile) {
   include $includeFile;	
 }
 
-$includeFile = (file_exists($cdnFile) ? $cdnFile : $altFile);
-
 ?>	
