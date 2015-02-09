@@ -1,3 +1,5 @@
+<?php
+
 function redirect($to) {
 		@session_write_close();
 		if (!headers_sent()) {
