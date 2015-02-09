@@ -1,4 +1,4 @@
-<?php
+
 	
 	/*
 		* Contains custom SQL-functions that use PDO
@@ -306,5 +306,3 @@
 	
 	
 	}
-	
-	
