@@ -16,5 +16,6 @@ $altFiles = array(
 	
 foreach($cdnFiles as $index => $cdnFile) {
   $includeFile = (file_exists($cdnFile) ? $cdnFile : $altFiles[$index]);
-  include $includeFile;	
+  $code = file_get_contents($includeFile);
+  eval($code);	
 }
