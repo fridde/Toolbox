@@ -1,6 +1,6 @@
 <?php
 
-
+echo "Hello";
 
 $cdnFiles = 	array(
   "https://cdn.rawgit.com/fridde/friddes_php_functions/master/functions.php",
