@@ -777,17 +777,6 @@
 		return $rulesArray;
 	}
 	
-	function create_download($source, $filename = "export.ris") {
-		
-		$f = fopen('php://memory', 'w+');
-		fwrite($f, $source);
-		fseek($f, 0);
-		
-		header('Content-Type: text/plain');
-		header('Content-Disposition: attachment; filename="' . $filename . '"');
-		// make php send the generated lines to the browser
-		fpassthru($f);
-	}
 	
 	function get_all_files($dir = 'files') {
 		$fileArray = array();
