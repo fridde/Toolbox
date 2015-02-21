@@ -74,7 +74,7 @@
 		return $date;
 	}
 	
-	function create_htmltable_from_array($array) {
+		function create_htmltable_from_array($array) {
 		
 		$colNames = array_keys(reset($array));
 		$html = '<table id="sortable" class="display stripe">';
@@ -91,15 +91,13 @@
 			$html .= "<tr>";
 			foreach ($row as $colIndex => $cell) {
 				$html .= "<td>" . $cell . "</td>";
-				
 			}
 			$html .= "</tr>";
 		}
-	}
-	$html .= "</tbody></table>";
-	
-	return $html;
-	}
+		$html .= "</tbody></table>";
+		
+		return $html;
+	}	
 	
 	function check_inclusion_according_to_tag($row, $tags, $givenPasswords, $truePasswords) {
 		
