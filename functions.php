@@ -74,66 +74,31 @@
 		return $date;
 	}
 	
-	function create_htmltable_from_array($array, $givenPasswords, $truePasswords) {
+	function create_htmltable_from_array($array) {
 		
 		$colNames = array_keys(reset($array));
 		$html = '<table id="sortable" class="display stripe">';
 		$html .= "<thead>
-        <tr>";
+		<tr>";
 		foreach ($colNames as $colname) {
-			if ($colname != "id") {
-				$html .= "<th>" . strtoupper($colname) . "</th>";
-			}
+			$html .= "<th>" . strtoupper($colname) . "</th>";
 		}
 		
 		$html .= "</tr>
-        </thead>
-        <tbody>";
+		</thead>
+		<tbody>";
 		foreach ($array as $rowIndex => $row) {
-			$filterTags = $row["tags"];
-			if (check_inclusion_according_to_tag($row, $filterTags, $givenPasswords, $truePasswords)) {
-				$html .= "<tr>";
-				foreach ($row as $colIndex => $cell) {
-					$cellContent = "";
-					switch ($colIndex) {
-						case "id":
-                        break;
-						case "name":
-                        $html .= "<td>" . $cell . "</td>";
-                        break;
-						case "adress":
-                        $domain = parse_url($cell, PHP_URL_HOST);
-                        $domain = str_replace("www.", "", $domain);
-                        $html .= "<td><a href=\"" . $cell . '" target="_blank">' . $domain . "</a>";
-                        break;
-						case "tags":
-                        $thisCellContent = array();
-                        $localTags = explode(",", $cell);
-                        array_walk($localTags, "trim");
-                        $containsNames = FALSE;
-                        foreach ($localTags as $tag) {
-                            if (!substr($tag, 0, 1) == "@") {
-                                $thisCellContent[] = $tag;
-								} else {
-                                $containsNames = TRUE;
-							}
-						}
-                        $html .= "<td>";
-                        $html .= ($containsNames ? "@you " : "");
-                        $html .= implode(", ", $thisCellContent) . "</td>";
-						
-                        break;
-						case "created":
-                        $html .= "<td>" . $cell . "</td>";
-                        break;
-					}
-				}
-				$html .= "</tr>";
+			$html .= "<tr>";
+			foreach ($row as $colIndex => $cell) {
+				$html .= "<td>" . $cell . "</td>";
+				
 			}
+			$html .= "</tr>";
 		}
-		$html .= "</tbody></table>";
-		
-		return $html;
+	}
+	$html .= "</tbody></table>";
+	
+	return $html;
 	}
 	
 	function check_inclusion_according_to_tag($row, $tags, $givenPasswords, $truePasswords) {
