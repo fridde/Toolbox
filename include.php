@@ -4,7 +4,7 @@ $cdnFiles = 	array(
   );
 $altFiles = array(
   "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/functions.php",
-  "https://github.com/fridde/friddes_php_functions/blob/master/sql_functions.php"
+  "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/sql_functions.php"
   );
 	
 foreach($cdnFiles as $index => $cdnFile) {
