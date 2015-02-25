@@ -34,7 +34,7 @@
 			$type = floor($searchValue / 100.0);
 			switch($type){
 				case "0":
-				$file .=  ".php"
+				$file .=  ".php";
 				$content = file_get_contents($file);
 				$name = explode("/", $file);
 				$name = "inc/" . end($name);
@@ -43,7 +43,7 @@
 				break;
 				
 				case "1":
-				$file .= ".php"
+				$file .= ".php";
 				include $file;
 				break;
 				
