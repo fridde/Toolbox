@@ -3016,4 +3016,17 @@
 		$sec = $tempma - ($min*60);
 		
 		return array("deg"=>$deg,"min"=>$min,"sec"=>$sec);
-	}    
+	}
+	
+	function array_walk_values($array, $function){
+		/* will return an array where a function that accepts a single parameter has been applied
+		it's practically a simplification of array_walk. Note that it returns a value!*/
+		
+		$returnArray = array();
+		foreach($array as $index => $value){
+			$returnArray[$index] = $$function($value);
+		}	
+		
+		return $returnArray;
+	}
+	}
