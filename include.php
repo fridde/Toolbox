@@ -38,7 +38,9 @@
 				$content = file_get_contents($file);
 				$name = explode("/", $file);
 				$name = "inc/" . end($name);
-				file_put_contents($name, $content);
+				if($content != FALSE){
+					file_put_contents($name, $content);
+				}
 				include $name;
 				break;
 				
