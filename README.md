@@ -16,3 +16,4 @@ Now the function ```inc()``` is defined and you can include from several sources
 ```
 inc("000, 001");
 ```
+Observe that includes from javascript and CSS have to be made in the header of the html-file, not before.
