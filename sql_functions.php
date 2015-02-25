@@ -34,7 +34,7 @@
 			} else {
 			$cd = $nonStandardDB;
 		}
-		echop($cd);
+		
 		try {
 			$conn = new PDO("mysql:host=$cd[0];dbname=$cd[1];", $cd[2], $cd[3]);
 			$conn->exec("SET NAMES utf8");
@@ -241,7 +241,6 @@
 		
 		$connectionDetails = get_conn_details();
 		$cd = $connectionDetails;
-		echop($cd);
 		$otherDB = array($cd[0], "information_schema", $cd[2], $cd[3]);
 		
 		$quote = "'"; // stupid workaround
