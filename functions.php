@@ -3024,7 +3024,7 @@
 		
 		$returnArray = array();
 		foreach($array as $index => $value){
-			$returnArray[$index] = $$function($value);
+			$returnArray[$index] = $function($value);
 		}	
 		
 		return $returnArray;
