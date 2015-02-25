@@ -2,14 +2,21 @@
 	
 	/*
 		* Contains custom SQL-functions that use PDO
-		* assumes that a variable $connectionDetails exist including
-		* db_host, $db_name, $db_username, $db_password
-		* $connectionDetails = array($db_host, $db_name, $db_username, $db_password);
-		* via another file, for example config.php
+		* assumes that a config.ini -file exists matching the template given in this folder
 		
 	*/
-	// the connectionsDetails must be provided by 
-	global $connectionDetails;
+
+	$ini_file = "config.ini";
+	if(file_exists($ini_file)){
+		$ini_array = parse_ini_file($ini_file, TRUE);
+		$cD = $ini_array["Connection_Details"];
+		$connectionDetails = array($cD["db_host"], $cD["db_name"], $cD["db_username"], $cD["db_password"]);
+	}
+	else {
+		echo "No valid config.ini was found. Please see https://github.com/fridde/friddes_php_functions for a template.";
+	}
+	
+	
 	
 	function sql_connect($nonStandardDB = FALSE) {
 		/* expects an array that contains the following values (in that order)
@@ -282,27 +289,27 @@
 		
 		$query = 'SELECT COLUMN_NAME FROM COLUMNS  
 		WHERE 
-	TABLE_NAME = \'' . $sqlTable . '\' AND COLUMN_KEY = \'PRI\';' ;
-	
-	global $connectionDetails;
-	$cd = $connectionDetails;
-	
-	$otherDB = array($cd[0], "information_schema", $cd[2], $cd[3]);
-	
-	$conn = sql_connect($otherDB);
-	$stmt = $conn->prepare($query);
-	$stmt->execute();
-	
-	// set the resulting array to associative
-	$stmt->setFetchMode(PDO::FETCH_ASSOC);
-	
-	$queryResult = $stmt->fetchAll();
-	
-	$primaryHeader = $queryResult[0]["COLUMN_NAME"];
-	
-	$conn = null;
-	
-	return $primaryHeader;
-	
-	
+		TABLE_NAME = \'' . $sqlTable . '\' AND COLUMN_KEY = \'PRI\';' ;
+		
+		global $connectionDetails;
+		$cd = $connectionDetails;
+		
+		$otherDB = array($cd[0], "information_schema", $cd[2], $cd[3]);
+		
+		$conn = sql_connect($otherDB);
+		$stmt = $conn->prepare($query);
+		$stmt->execute();
+		
+		// set the resulting array to associative
+		$stmt->setFetchMode(PDO::FETCH_ASSOC);
+		
+		$queryResult = $stmt->fetchAll();
+		
+		$primaryHeader = $queryResult[0]["COLUMN_NAME"];
+		
+		$conn = null;
+		
+		return $primaryHeader;
+		
+		
 	}
