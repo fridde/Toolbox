@@ -5,17 +5,21 @@
 		* assumes that a config.ini -file exists matching the template given in this folder
 		
 	*/
-
-	$ini_file = "config.ini";
-	if(file_exists($ini_file)){
-		$ini_array = parse_ini_file($ini_file, TRUE);
-		$cD = $ini_array["Connection_Details"];
-		$connectionDetails = array($cD["db_host"], $cD["db_name"], $cD["db_username"], $cD["db_password"]);
-	}
-	else {
-		echo "No valid config.ini was found. Please see https://github.com/fridde/friddes_php_functions for a template.";
-	}
 	
+	function get_conn_details($ini_file = "config.ini"){
+		
+		if(file_exists($ini_file)){
+			$ini_array = parse_ini_file($ini_file, TRUE);
+			$cD = $ini_array["Connection_Details"];
+			$connectionDetails = array($cD["db_host"], $cD["db_name"], $cD["db_username"], $cD["db_password"]);
+			return $connectionDetails;
+		}
+		else {
+			$errorText = "No valid config.ini was found. Please see https://github.com/fridde/friddes_php_functions for a template.";
+			echo $errorText;
+			return $errorText;
+		}
+	}
 	
 	
 	function sql_connect($nonStandardDB = FALSE) {
@@ -24,12 +28,13 @@
 		*/
 		
 		if ($nonStandardDB == FALSE) {
-			global $connectionDetails;
+			
+			$connectionDetails = get_conn_details();
 			$cd = $connectionDetails; // abbreviation
 			} else {
 			$cd = $nonStandardDB;
 		}
-		
+		echop($cd);
 		try {
 			$conn = new PDO("mysql:host=$cd[0];dbname=$cd[1];", $cd[2], $cd[3]);
 			$conn->exec("SET NAMES utf8");
@@ -234,9 +239,9 @@
 	
 	function sql_get_headers($sqlTable) {
 		
-		global $connectionDetails;
+		$connectionDetails = get_conn_details();
 		$cd = $connectionDetails;
-		
+		echop($cd);
 		$otherDB = array($cd[0], "information_schema", $cd[2], $cd[3]);
 		
 		$quote = "'"; // stupid workaround
@@ -291,7 +296,7 @@
 		WHERE 
 		TABLE_NAME = \'' . $sqlTable . '\' AND COLUMN_KEY = \'PRI\';' ;
 		
-		global $connectionDetails;
+		$connectionDetails = get_conn_details();
 		$cd = $connectionDetails;
 		
 		$otherDB = array($cd[0], "information_schema", $cd[2], $cd[3]);
