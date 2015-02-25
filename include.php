@@ -21,7 +21,7 @@
 		"300" => "/lib/DataTables/extensions/Editor-1.3.3/js/dataTables.editor",
 		"301" => "/bostad/inc/datatables_init",
 		/* remote css files */
-		"400" => "//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui"	
+		"400" => "//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui",	
 		/* local, already existing css-files*/
 		"500" => "/lib/DataTables/media/css/jquery.dataTables",
 		"501" => "/lib/DataTables/extensions/TableTools/css/dataTables.tableTools",
