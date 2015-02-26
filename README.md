@@ -6,7 +6,9 @@ To include these and other files, put this preamble above your code:
 	/* PREAMBLE */
 	$url = "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/include.php";
 	$content = file_get_contents($url);
-	file_put_contents("include.php", $content);
+	if($content != FALSE){
+		file_put_contents("include.php", $content); 
+	}
 	include "include.php";
 	/* END OF PREAMBLE */
 
