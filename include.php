@@ -2,7 +2,7 @@
 	function inc($inclusionString){
 		
 		$inclusionArray = explode(",", $inclusionString);
-		array_walk($inclusionArray, "trim");
+		$inclusionArray = array_map("trim", $inclusionArray);
 		
 		$files = array(
 		/* remote php files that have to be copied to the local server first */
@@ -30,9 +30,9 @@
 		
 		foreach($inclusionArray as $searchValue){
 			$file = $files[$searchValue];
-			
+			echo $file . "<br>";
 			$type = floor($searchValue / 100.0);
-			switch($type){
+			switch($type){ 
 				case "0":
 				$file .=  ".php";
 				$content = file_get_contents($file);
