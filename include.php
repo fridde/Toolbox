@@ -30,7 +30,7 @@
 		
 		foreach($inclusionArray as $searchValue){
 			$file = $files[$searchValue];
-			echo $file . "<br>";
+			
 			$type = floor($searchValue / 100.0);
 			switch($type){ 
 				case "0":
