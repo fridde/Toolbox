@@ -31,6 +31,8 @@
 		"503" => "/inc/stylesheet",
 		);
 		
+		$subdir = get_current_subfolder();
+		
 		foreach($inclusionArray as $searchValue){
 			$file = $files[$searchValue];
 			
@@ -58,7 +60,7 @@
 				break;
 				
 				case "3":
-				$file = $file . ".js";
+				$file = $subdir . $file . ".js";
 				echo '<script src="' . $file .  '"> </script>' . PHP_EOL;
 				break;
 				
@@ -69,10 +71,17 @@
 				break;
 				
 				case "5":
-				$file = "//" . $_SERVER["HTTP_HOST"] . $file . ".css";
+				$file = $subdir . $file . ".css";
 				echo '<link rel="stylesheet" type="text/css" href="' .  $file . '.css">';
 				break;
 				
 			}
 		}
 	}		
+	
+	function get_current_subfolder(){
+
+		$path = explode("/", $_SERVER['PHP_SELF']);
+		array_pop($path);
+		return implode("/", $path);
+	}
