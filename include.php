@@ -12,20 +12,23 @@
 		"100" => "inc/misc_functions",
 		/* remote javascript files hosted by other servers */
 		"200" => "//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min",
-		"201" => "//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min",
+		"201" => "",
 		"202" => "//cdn.datatables.net/1.10.4/js/jquery.dataTables.min",
 		"203" => "//cdn.datatables.net/responsive/1.0.1/js/dataTables.responsive",
 		"204" => "//cdn.datatables.net/tabletools/2.2.3/js/dataTables.tableTools.min",
 		"205" => "//code.jquery.com/ui/1.11.2/jquery-ui.min",
+		"206" => "//cdn.datatables.net/fixedheader/2.1.2/js/dataTables.fixedHeader.min",
 		/* local, already existing javascript files */
 		"300" => "/lib/DataTables/extensions/Editor-1.3.3/js/dataTables.editor",
 		"301" => "/bostad/inc/datatables_init",
+		"302" => "inc/datatables_init",
 		/* remote css files */
 		"400" => "//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui",	
 		/* local, already existing css-files*/
 		"500" => "/lib/DataTables/media/css/jquery.dataTables",
 		"501" => "/lib/DataTables/extensions/TableTools/css/dataTables.tableTools",
-		"502" => "/lib/DataTables/extensions/Editor-1.3.3/css/dataTables.editor"		
+		"502" => "/lib/DataTables/extensions/Editor-1.3.3/css/dataTables.editor",
+		"503" => "inc/stylesheet",
 		);
 		
 		foreach($inclusionArray as $searchValue){
