@@ -72,7 +72,7 @@
 				
 				case "5":
 				$file = $subdir . $file . ".css";
-				echo '<link rel="stylesheet" type="text/css" href="' .  $file . '.css">';
+				echo '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
 				break;
 				
 			}
