@@ -58,13 +58,13 @@
 				break;
 				
 				case "3":
-				$file = "//" . $_SERVER["HTTP_HOST"] . $file . ".js";
+				$file = $file . ".js";
 				echo '<script src="' . $file .  '"> </script>' . PHP_EOL;
 				break;
 				
 				case "4":
 				$file .= ".css";
-				echo '<link rel="stylesheet" type="text/css" href="' .  $file . '.css">';
+				echo '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
 				
 				break;
 				
