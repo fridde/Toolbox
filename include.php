@@ -9,7 +9,7 @@
 		"000" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/functions",
 		"001" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/sql_functions",
 		/* local php files */
-		"100" => "/inc/misc_functions",
+		"100" => "inc/misc_functions",
 		/* remote javascript files hosted by other servers */
 		"200" => "//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min",
 		"201" => "",
