@@ -24,10 +24,10 @@
 		"302" => "/inc/datatables_init",
 		/* remote css files */
 		"400" => "//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui",
-		"401" => "//cdn.datatables.net/1.10.7/css/jquery.dataTables.min.css",
-		"402" => "//cdn.datatables.net/fixedheader/2.1.2/css/dataTables.fixedHeader.css",
-		"403" => "//cdn.datatables.net/responsive/1.0.6/css/dataTables.responsive.css",
-		"404" => "//cdn.datatables.net/tabletools/2.2.4/css/dataTables.tableTools.css",
+		"401" => "//cdn.datatables.net/1.10.7/css/jquery.dataTables.min",
+		"402" => "//cdn.datatables.net/fixedheader/2.1.2/css/dataTables.fixedHeader",
+		"403" => "//cdn.datatables.net/responsive/1.0.6/css/dataTables.responsive",
+		"404" => "//cdn.datatables.net/tabletools/2.2.4/css/dataTables.tableTools",
 		/* local, already existing css-files*/
 		"500" => "/lib/DataTables/media/css/jquery.dataTables",
 		"501" => "/lib/DataTables/extensions/TableTools/css/dataTables.tableTools",
