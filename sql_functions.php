@@ -315,5 +315,20 @@
 		
 		return $primaryHeader;
 		
+	}
+	
+	/* will retrieve an id of  */
+	
+	function sql_get_id($sqlTable, $criteria, $id_header_name = "id"){
 		
+		$queryResult = sql_select($sqlTable, $criteria, $id_header_name);
+		if(count($queryResult) == 1){
+			$onlyResult = reset($queryResult);
+			$result = $onlyResult[$id_header_name];
+		}
+		else {
+			$result = FALSE;
+		}
+		
+		return $result;
 	}
