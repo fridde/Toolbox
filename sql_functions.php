@@ -123,7 +123,7 @@
 		
 	}
 	
-	function sql_select($sqlTable, $criteria = "", $headers = "all", $not = FALSE) {
+		function sql_select($sqlTable, $criteria = "", $headers = "all", $not = FALSE) {
 		
 		/* criteria can be given in 3 different forms
 			* 1. as a string written in SQL
@@ -164,15 +164,22 @@
 		switch ($criteriaType) {
 			
 			case "string":
-            $criteriaString = $criteria;
+            // i.e. "WHERE City = Berlin"
+			$criteriaString = $criteria;
             break;
 			
 			case "string_and_array":
+			// i.e. array("AND", array("City" => "Berlin", "Job" => "Carpenter"))
             $criteriaString = " WHERE ";
             $glue = strtoupper($criteria[0]) . " ";
             $criteriaArray = array();
-            foreach ($criteria[1] as $left => $right) {
-                $criteriaArray[] = $left . " " . $equalSign . " '" . $right . "' ";
+            foreach ($criteria[1] as $left => $rightArray) {
+                if(!is_array($rightArray)){
+					$rightArray = array($rightArray);
+				}
+				foreach($rightArray as $right){
+					$criteriaArray[] = $left . " " . $equalSign . " '" . $right . "' ";
+				}
 			}
             $criteriaString .= implode($glue, $criteriaArray);
             break;
@@ -191,7 +198,7 @@
 		}
 		
 		$query .= $criteriaString . " ;";
-		
+		echo $query;
 		$conn = sql_connect();
 		$stmt = $conn->prepare($query);
 		$stmt->execute();
@@ -207,6 +214,7 @@
 		
 		return $resultArray;
 	}
+	
 	
 	function sql_update_row($id, $sqlTable, $row, $idHeader = "id") {
 		
