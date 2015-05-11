@@ -198,7 +198,6 @@
 		}
 		
 		$query .= $criteriaString . " ;";
-		echo $query;
 		$conn = sql_connect();
 		$stmt = $conn->prepare($query);
 		$stmt->execute();
