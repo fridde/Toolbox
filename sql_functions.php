@@ -123,7 +123,7 @@
 		
 	}
 	
-		function sql_select($sqlTable, $criteria = "", $headers = "all", $not = FALSE) {
+	function sql_select($sqlTable, $criteria = "", $headers = "all", $not = FALSE) {
 		
 		/* criteria can be given in 3 different forms
 			* 1. as a string written in SQL
@@ -141,7 +141,7 @@
 		$query = "SELECT ";
 		if ($headers === "all") {
 			$query .= "* ";
-			} else {
+		} else {
 			$query .= implode(", ", $headers);
 			$query .= " ";
 		}
@@ -175,25 +175,25 @@
             $criteriaArray = array();
             foreach ($criteria[1] as $left => $rightArray) {
                 if(!is_array($rightArray)){
-					$rightArray = array($rightArray);
-				}
-				foreach($rightArray as $right){
-					$criteriaArray[] = $left . " " . $equalSign . " '" . $right . "' ";
-				}
-			}
+			$rightArray = array($rightArray);
+		}
+		foreach($rightArray as $right){
+			$criteriaArray[] = '`' . $left . "` " . $equalSign . " '" . $right . "' ";
+		}
+	    }
             $criteriaString .= implode($glue, $criteriaArray);
             break;
 			
 			case "two_strings":
             $criteriaString = " WHERE ";
-            $criteriaString .= $criteria[0] . " " . $equalSign . ' \'' . $criteria[1] . '\'';
+            $criteriaString .= '`' . $criteria[0] . "` " . $equalSign . ' \'' . $criteria[1] . '\'';
             break;
 			
-			case "atomic_array":
+	case "atomic_array":
             $criteriaString = " WHERE ";
             $key = array_keys($criteria);
             $key = $key[0];
-            $criteriaString .= $key . " " . $equalSign  . ' \'' . $criteria[$key] . '\'';
+            $criteriaString .= '`' . $key . "` " . $equalSign  . ' \'' . $criteria[$key] . '\'';
             break;
 		}
 		
