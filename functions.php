@@ -3029,4 +3029,25 @@
 		
 		return $returnArray;
 	}
-	
+
+	function array_choose_columns($array, $columns, $remove = FALSE){
+		/* will take a rectangular array and choose or remove certain columns.
+			array: the array to choose from
+			columns: an array that contains all the columns
+			remove: a boolean that tells whether the columns given in the parameter "columns" should be selected or removed from the array. If TRUE, all columns EXCEPT the given columns are chosen.
+		*/
+		$resultArray = array();
+		foreach($array as $row){
+			$rowToAdd = array();
+			foreach($row as $key => $value){
+				$inArray = in_array($key, $columns);
+				if(($inArray && !$remove) || (!$inArray && $remove)){
+					$rowToAdd[$key] = $value;
+				}
+				
+			}
+			$resultArray[] = $rowToAdd;
+		}
+		
+		return $resultArray;
+	}		
