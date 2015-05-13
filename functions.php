@@ -80,7 +80,7 @@
 		$html = '<table id="';
 		$html .= $id;
 		$html .= '" class="';
-		$hmtl .= $class;
+		$html .= $class;
 		$html .= '"><thead>';
 		$html .= '<tr>';
 		foreach ($colNames as $colname) {
