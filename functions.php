@@ -74,12 +74,15 @@
 		return $date;
 	}
 	
-		function create_htmltable_from_array($array) {
+		function create_htmltable_from_array($array, $id = "sortable", $class = "display stripe") {
 		
 		$colNames = array_keys(reset($array));
-		$html = '<table id="sortable" class="display stripe">';
-		$html .= "<thead>
-		<tr>";
+		$html = '<table id="';
+		$html .= $id;
+		$html .= '" class="';
+		$hmtl .= $class;
+		$html .= '"><thead>';
+		$html .= '<tr>';
 		foreach ($colNames as $colname) {
 			$html .= "<th>" . strtoupper($colname) . "</th>";
 		}
