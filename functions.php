@@ -76,6 +76,11 @@
 	
 		function create_htmltable_from_array($array, $id = "sortable", $class = "display stripe") {
 		
+		/* check for emtpy array */ 
+		$noRows = count($array) == 0;
+		$oneRowButNoContent = count($array) == 1 && count(reset($array)) == 0;
+		if($noRows || $oneRowButNoContent) {return "";}
+		
 		$colNames = array_keys(reset($array));
 		$html = '<table id="';
 		$html .= $id;
