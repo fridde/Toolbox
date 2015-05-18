@@ -45,12 +45,13 @@
 		return $conn;
 	}
 	
-	function sql_get_highest_id($sqlTable, $idHeader = "id") {
+	function sql_get_highest_id($sqlTable, $idHeader = "id", $debug = "FALSE") {
 		
 		$query = "SELECT " . $idHeader . " FROM " . $sqlTable;
 		$query .= " ORDER BY " . $idHeader . " DESC LIMIT 1;";
 		
 		$conn = sql_connect();
+		if($debug){echo $query;}
 		$stmt = $conn->prepare($query);
 		$stmt->execute();
 		
@@ -62,7 +63,7 @@
 		return $resultArray[0][$idHeader];
 	}
 	
-	function sql_insert_rows($sqlTable, $array, $forceId = FALSE, $maxString = 5000) {
+	function sql_insert_rows($sqlTable, $array, $forceId = FALSE, $maxString = 5000, $debug = FALSE) {
 		
 		// sometimes only a single row is given that is not contained in an array
 		$first_element = reset($array);
@@ -108,6 +109,7 @@
 			
 			if (strlen($query) > $maxString) {
 				$totalQuery = $queryStart . rtrim($query, ",") . ";";
+				if($debug){echo $totalQuery;}
 				$conn->exec($totalQuery);
 				
 				$query = "";
@@ -123,7 +125,7 @@
 		
 	}
 	
-	function sql_select($sqlTable, $criteria = "", $headers = "all", $not = FALSE) {
+	function sql_select($sqlTable, $criteria = "", $headers = "all", $not = FALSE, $debug = FALSE) {
 		
 		/* criteria can be given in 3 different forms
 			* 1. as a string written in SQL
@@ -198,6 +200,7 @@
 		}
 		
 		$query .= $criteriaString . " ;";
+		if($debug){echo $query;}
 		$conn = sql_connect();
 		$stmt = $conn->prepare($query);
 		$stmt->execute();
@@ -215,7 +218,7 @@
 	}
 	
 	
-	function sql_update_row($id, $sqlTable, $row, $idHeader = "id") {
+	function sql_update_row($id, $sqlTable, $row, $idHeader = "id", $debug = FALSE) {
 		
 		$headers = sql_get_headers($sqlTable);
 		
@@ -228,6 +231,7 @@
 		}
 		$query .= implode(", ", $valueArray);
 		$query .= ' WHERE ' . $idHeader . '=\'' . $id . '\' ;';
+		if($debug){echo $query;}
 		sql_quick_execute($query);
 	}
 	
@@ -326,9 +330,9 @@
 	
 	/* will retrieve an id of  */
 	
-	function sql_get_id($sqlTable, $criteria, $id_header_name = "id"){
-		
-		$queryResult = sql_select($sqlTable, $criteria, $id_header_name);
+	function sql_get_id($sqlTable, $criteria, $id_header_name = "id", $not = FALSE, $debug = FALSE){
+	
+		$queryResult = sql_select($sqlTable, $criteria, $id_header_name, $not, $debug);
 		if(count($queryResult) == 1){
 			$onlyResult = reset($queryResult);
 			$result = $onlyResult[$id_header_name];
