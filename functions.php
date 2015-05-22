@@ -3107,3 +3107,27 @@
 		return generate_tag($string, "close");		
 	}
 	
+	function extract_request($translationArray = array(), $prefix = "req_"){
+		
+		global $_REQUEST;
+		$returnArray = array();
+		//echo print_r($_REQUEST);
+		
+		foreach($_REQUEST as $key => $value){
+			if(isset($translationArray[$key])){
+				$varName = $translationArray[$key];
+				$varName = (trim($varName) == "" ? $key : $varName);
+			}
+			else {
+				$varName = $prefix . $key;
+			}
+			$returnArray[$varName] = $value;
+		}
+		foreach($translationArray as $key => $value){
+			if(!isset($returnArray[$key])){
+				$returnArray[$value] = FALSE;
+			}
+		}
+		return $returnArray;
+		
+	}
