@@ -24,7 +24,7 @@
 		// make php send the generated lines to the browser
 		fpassthru($f);
 	}
-
+	
 	function array_change_col_names($array, $translationArray) {
 		/* takes an array simulating a table in the format
 			* array(
@@ -74,7 +74,7 @@
 		return $date;
 	}
 	
-		function create_htmltable_from_array($array, $id = "sortable", $class = "display stripe") {
+	function create_htmltable_from_array($array, $id = "sortable", $class = "display stripe") {
 		
 		/* check for emtpy array */ 
 		$noRows = count($array) == 0;
@@ -140,7 +140,7 @@
 		}
 		return $newArray;
 	}
-
+	
 	function filter_words($wordArray, $rules) {
 		
 		foreach ($rules as $rule) {
@@ -291,7 +291,7 @@
 		}
 		return $rulesArray;
 	}
-
+	
 	function get_all_files($dir = 'files') {
 		$fileArray = array();
 		$handle = opendir($dir);
@@ -309,7 +309,7 @@
 		
 		return $fileArray;
 	}
-
+	
 	function echop($array) {
 		/* extends echo by nicely printing arrays*/
 		if (gettype($array) != "array") {
@@ -2934,7 +2934,7 @@
 		}
 		
 	}
-
+	
 	function logg($data, $infoText = "", $filename = "logg.txt") {
 		
 		$string = "\n--------------------------------\n";
@@ -2997,10 +2997,10 @@
 	}
 	
 	function DMStoDEC($deg,$min,$sec){
-
-	// Converts DMS ( Degrees / minutes / seconds ) 
-	// to decimal format longitude / latitude
-
+		
+		// Converts DMS ( Degrees / minutes / seconds ) 
+		// to decimal format longitude / latitude
+		
     	return $deg+((($min*60)+($sec))/3600);
 	}
 	
@@ -3037,7 +3037,7 @@
 		
 		return $returnArray;
 	}
-
+	
 	function array_choose_columns($array, $columns, $remove = FALSE){
 		/* will take a rectangular array and choose or remove certain columns.
 			array: the array to choose from
@@ -3061,11 +3061,48 @@
 	}
 	
 	function generateRandomString($length = 10) {
-    		$characters = '0123456789abcdefghijklmnopqrstuvwxyz';
+		$characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		$charactersLength = strlen($characters);
-		 $randomString = '';
-    		for ($i = 0; $i < $length; $i++) {
-        		$randomString .= $characters[rand(0, $charactersLength - 1)];
-    		}
-    		return $randomString;
+		$randomString = '';
+		for ($i = 0; $i < $length; $i++) {
+			$randomString .= $characters[rand(0, $charactersLength - 1)];
+		}
+		return $randomString;
 	}
+	
+	function generate_tag($string, $type){
+		
+		$tagArray = explode(",", $string);
+		$tagArray = array_walk_values($tagArray, "trim");
+		$returnString = "";
+		
+		foreach($tagArray as $tag){
+			$returnString .= "<";
+			$returnString .= ($type == "close" ? "/" : "");
+			switch($tag){
+				
+				case "meta":
+				$returnString .=  ' http-equiv = "Content-Type" content = "text/html; charset=UTF-8"';
+				break;
+				
+				default:
+				$returnString .= $tag;
+				break;
+				
+			}
+			$returnString .= ">";
+			
+		}
+		
+	}
+	
+	function open_tag($string){
+		
+		return generate_tag($string, "open");		
+	}
+	
+	function close_tag($string){
+		
+		return generate_tag($string, "close");		
+	}
+	
