@@ -3079,6 +3079,7 @@
 		foreach($tagArray as $tag){
 			$returnString .= "<";
 			$returnString .= ($type == "close" ? "/" : "");
+			$returnString .= $tag;
 			switch($tag){
 				
 				case "meta":
@@ -3086,7 +3087,7 @@
 				break;
 				
 				default:
-				$returnString .= $tag;
+				$returnString .= "";
 				break;
 				
 			}
