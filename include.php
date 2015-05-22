@@ -1,5 +1,5 @@
 <?php
-	function inc($inclusionString){
+	function inc($inclusionString, $debug = FALSE){
 		
 		$inclusionArray = explode(",", $inclusionString);
 		$inclusionArray = array_map("trim", $inclusionArray);
@@ -18,6 +18,7 @@
 		"204" => "//cdn.datatables.net/tabletools/2.2.3/js/dataTables.tableTools.min",
 		"205" => "//code.jquery.com/ui/1.11.2/jquery-ui.min",
 		"206" => "//cdn.datatables.net/fixedheader/2.1.2/js/dataTables.fixedHeader.min",
+		"207" => "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min",
 		/* local, already existing javascript files */
 		"300" => "/lib/DataTables/extensions/Editor-1.3.3/js/dataTables.editor",
 		"301" => "/bostad/inc/datatables_init",
@@ -28,6 +29,7 @@
 		"402" => "//cdn.datatables.net/fixedheader/2.1.2/css/dataTables.fixedHeader",
 		"403" => "//cdn.datatables.net/responsive/1.0.6/css/dataTables.responsive",
 		"404" => "//cdn.datatables.net/tabletools/2.2.4/css/dataTables.tableTools",
+		"405" => "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min",
 		/* local, already existing css-files*/
 		"500" => "/lib/DataTables/media/css/jquery.dataTables",
 		"501" => "/lib/DataTables/extensions/TableTools/css/dataTables.tableTools",
@@ -47,7 +49,7 @@
 				$content = file_get_contents($file);
 				$name = explode("/", $file);
 				$name = "inc/" . end($name);
-				if($content != FALSE){
+				if($content != FALSE && !$debug){
 					file_put_contents($name, $content);
 				}
 				include $name;
