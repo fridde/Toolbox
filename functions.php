@@ -3093,6 +3093,7 @@
 			$returnString .= ">";
 			
 		}
+		return $returnString;
 		
 	}
 	
