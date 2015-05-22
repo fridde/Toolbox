@@ -3112,11 +3112,20 @@
 		global $_REQUEST;
 		$returnArray = array();
 		
+		$newTranslationArray = array();
+		foreach($translationArray as $key => $value){
+			if(gettype($key) == "integer"){
+				$newTranslationArray[$value] = $value;
+			}
+			else {
+				$newTranslationArray[$key] = $value;
+			}
+		}
+		$translationArray = $newTranslationArray;
 		
 		foreach($_REQUEST as $key => $value){
 			if(isset($translationArray[$key])){
 				$varName = $translationArray[$key];
-				$varName = (trim($varName) == "" ? $key : $varName);
 			}
 			else {
 				$varName = $prefix . $key;
