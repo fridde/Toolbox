@@ -3093,7 +3093,7 @@
 			$returnString .= ">";
 			
 		}
-		return $returnString;
+		echo $returnString;
 		
 	}
 	
