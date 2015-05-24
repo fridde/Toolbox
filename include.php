@@ -4,6 +4,10 @@
 		$inclusionArray = explode(",", $inclusionString);
 		$inclusionArray = array_map("trim", $inclusionArray);
 		
+		$translationArray = array("jquery" => "001", "bootjs" => "207", 
+		"jqueryUIjs" => "205" , "jqueryUIcss" => "400", 
+		"bootcss" => "405");
+		
 		$files = array(
 		/* remote php files that have to be copied to the local server first */
 		"000" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/functions",
@@ -40,7 +44,15 @@
 		$subdir = get_current_subfolder();
 		
 		foreach($inclusionArray as $searchValue){
-			$file = $files[$searchValue];
+			$file = "";
+			
+			if(isset($translationArray[$searchValue])){
+				$searchValue = $translationArray[$searchValue];
+			}
+			
+			if(isset($files[$searchValue])){
+				$file = $files[$searchValue];
+			}
 			
 			$type = floor($searchValue / 100.0);
 			switch($type){ 
