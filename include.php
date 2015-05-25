@@ -46,6 +46,7 @@
 		);
 		
 		$subdir = get_current_subfolder();
+		$alreadyIncluded = array();
 		
 		foreach($inclusionArray as $searchValue){
 			$file = "";
