@@ -1,11 +1,14 @@
 <?php
+
 	function inc($inclusionString, $debug = FALSE){
 		
 		$inclusionArray = explode(",", $inclusionString);
 		$inclusionArray = array_map("trim", $inclusionArray);
 		
 		/* a string to simplify finding a matching key */
-		$translationString = "200:jquery ; 205:jqueryUIjs ; 207:bootjs ; 400:jqueryUIcss ; 405:bootcss"; 
+		$translationString = "000:fnc ; 001:sql ; 101:cal 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
+		206:DTfH ; 207:bootjs ; 302:DTin ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ;
+		503:css"; 
 		$translationArray = array();
 		foreach(explode(";", $translationString) as $pair){
 			$thisPair = explode(":", $pair);
@@ -18,6 +21,7 @@
 		"001" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/sql_functions",
 		/* local php files */
 		"100" => "inc/misc_functions",
+		"101" => "inc/calendar_functions",
 		/* remote javascript files hosted by other servers */
 		"200" => "//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min",
 		"201" => "",
