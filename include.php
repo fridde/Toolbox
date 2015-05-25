@@ -6,7 +6,7 @@
 		$inclusionArray = array_map("trim", $inclusionArray);
 		
 		/* a string to simplify finding a matching key */
-		$translationString = "000:fnc ; 001:sql ; 101:cal 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
+		$translationString = "000:fnc ; 001:sql ; 101:cal ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
 		206:DTfH ; 207:bootjs ; 302:DTin ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ;
 		503:css"; 
 		$translationArray = array();
