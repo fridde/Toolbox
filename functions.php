@@ -468,6 +468,11 @@
 		return $pageURL;
 	}
 	
+	function echo_link_for($url, $label = "", $class = "") {
+		/* wrapper for "link_for" */
+		echo link_for($url, $label, $class);
+	}
+	
 	function link_for($url, $label = "", $class = "") {
 		/* wrapper to build links and the ability to define a class*/
 		$returnString = '<a href="' . $url . '" ';
@@ -483,8 +488,9 @@
 		}
 		$returnString .= "</a>";
 		
-		echo $returnString;
+		return $returnString;
 	}
+	
 	
 	function print_r2($Array, $Name = '', $size = 2, $depth = '', $Tab = '', $Sub = '', $c = 0) {
 		/** wrote to display with large multi dimensional arrays, // Dave Husk , easyphpscripts.com
