@@ -3141,3 +3141,15 @@
 		return $returnArray;
 		
 	}
+	
+	function add_hidden_fields($array){
+		
+		/* will return hidden fields. The array has to have the names given as array-keys and the values given as array-values */
+		$output = "";
+		foreach($array as $name => $value){
+			$output .= '<input type="hidden" value="';
+			$output .= $value . '" name="';
+			$output .= $name . '" >';
+		}
+		return $output;
+	}
