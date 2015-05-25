@@ -4,9 +4,13 @@
 		$inclusionArray = explode(",", $inclusionString);
 		$inclusionArray = array_map("trim", $inclusionArray);
 		
-		$translationArray = array("jquery" => "001", "bootjs" => "207", 
-		"jqueryUIjs" => "205" , "jqueryUIcss" => "400", 
-		"bootcss" => "405");
+		/* a string to simplify finding a matching key */
+		$translationString = "200:jquery ; 205:jqueryUIjs ; 207:bootjs ; 400:jqueryUIcss ; 405:bootcss"; 
+		$translationArray = array();
+		foreach(explode(";", $translationString) as $pair){
+			$thisPair = explode(":", $pair);
+			$translationArray[trim($thisPair[1])] = trim($thisPair[0]);
+		}
 		
 		$files = array(
 		/* remote php files that have to be copied to the local server first */
@@ -53,8 +57,14 @@
 			if(isset($files[$searchValue])){
 				$file = $files[$searchValue];
 			}
+			if(in_array($searchValue, $alreadyIncluded)){
+				$type = "skip";
+			}
+			else {
+				$type = floor($searchValue / 100.0);
+				$alreadyIncluded[] = $searchValue;
+			}
 			
-			$type = floor($searchValue / 100.0);
 			switch($type){ 
 				case "0":
 				$file .=  ".php";
@@ -93,6 +103,14 @@
 				echo '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
 				break;
 				
+				default:
+				if($type == "skip"){
+					// Do nothing!
+				}
+				else {
+					echo '<!-- The index "'. $type . '" could not be found in the include.php file. -->' ;
+				}
+				break;
 			}
 		}
 	}		
