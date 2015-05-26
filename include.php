@@ -8,7 +8,7 @@
 		/* a string to simplify finding a matching key */
 		$translationString = "000:fnc ; 001:sql ; 101:cal ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
 		206:DTfH ; 207:bootjs ; 302:DTin ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ; 
-		406:boottheme ; 503:css"; 
+		406:boottheme ; 407:fAwe ; 503:css"; 
 		$translationArray = array();
 		foreach(explode(";", $translationString) as $pair){
 			$thisPair = explode(":", $pair);
@@ -43,6 +43,7 @@
 		"404" => "//cdn.datatables.net/tabletools/2.2.4/css/dataTables.tableTools",
 		"405" => "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min",
 		"406" => "//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min",
+		"407" => "//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min",
 		/* local, already existing css-files*/
 		"500" => "/lib/DataTables/media/css/jquery.dataTables",
 		"501" => "/lib/DataTables/extensions/TableTools/css/dataTables.tableTools",
