@@ -3076,42 +3076,16 @@
 		return $randomString;
 	}
 	
-	function generate_tag($string, $type){
+	function as_tag(){
 		
-		$tagArray = explode(",", $string);
-		$tagArray = array_walk_values($tagArray, "trim");
+		$tagArray = func_get_args();
 		$returnString = "";
 		
 		foreach($tagArray as $tag){
-			$returnString .= "<";
-			$returnString .= ($type == "close" ? "/" : "");
-			$returnString .= $tag;
-			switch($tag){
-				
-				case "meta":
-				$returnString .=  ' http-equiv = "Content-Type" content = "text/html; charset=UTF-8"';
-				break;
-				
-				default:
-				$returnString .= "";
-				break;
-				
-			}
-			$returnString .= ">";
-			
+			$returnString .= "<" . $tag . ">";
 		}
 		echo $returnString;
 		
-	}
-	
-	function open_tag($string){
-		
-		return generate_tag($string, "open");		
-	}
-	
-	function close_tag($string){
-		
-		return generate_tag($string, "close");		
 	}
 	
 	function extract_request($translationArray = array(), $prefix = "req_"){
