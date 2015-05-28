@@ -3183,6 +3183,9 @@
 	
 	function tag(){
 		
+		/* args: string $tagName, [array $attributes, string $content]
+			
+		*/
 		/* these elements don't need to be closed*/
 		$void_elements = array("area","base","br","col","command","embed","hr","img","input","link","meta","param","source");
 		/* these elements will be included in case no attribute-array was given*/
@@ -3200,9 +3203,6 @@
 			if(!is_null($attributes)){
 				$atts = $attributes;
 			}
-			elseif(isset($standardAttributes[$tagName])){
-				$atts = $standardAttributes[$tagName];
-			}
 			foreach($atts as $att => $attVal){
 				$output .= ' ' . $att . '="' . $attVal . '"';
 			}
@@ -3216,3 +3216,45 @@
 		
 		return $output;
 	}
+	
+	function qtag(){
+		/* will create a html-tag and chose from a set of standard variables
+			// argument 1 has to be the type, the rest of the arguments will be interpreted according to the standard
+			specified in the $def-array
+		*/
+		$maxNumberOfArgs = 10;
+		
+		$args =  func_get_args();
+		for($i = 0; $i < $maxNumberOfArgs ; $i++){
+			$argname = "arg" . $i;
+			$$argname = array_shift($args);
+			$$argname = (is_null($$argname) ? FALSE : $$argname);
+		}
+		$pseudoTag = ($arg0 ? $arg0 : "");
+		$tagName = "";
+		$atts = array();
+		$content = "";
+		
+		switch($pseudoTag){
+			case "textinput":
+			$tagName = "input";
+			if($arg1){$atts["name"] = $arg1;}
+			if($arg2){$atts["placeholder"] = $arg2;}
+			if($arg3){$atts["class"] = $arg3;}
+			if($arg4){$atts["id"] = $arg4;}
+			break;
+		
+		
+		default:
+		if($pseudoTag == ""){
+			return "ERROR: You must at least provide ONE argument to the function qtag()";
+		}
+		else {
+			return "ERROR: The function qtag() doesn't understand the tag name" . $pseudoTag;  
+		}
+		break;
+		
+	}
+	return tag($tagName, $atts, $content);
+	
+}
