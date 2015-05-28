@@ -3244,6 +3244,15 @@ function tag($tagName, $attributes = array(), $content = ""){
 				if($arg1){$atts["value"] = $arg1;}
 				break;
 				
+				case "checkbox":
+				$tagName = "input";
+				$atts["type"] = "checkbox";
+				if($arg1){$atts["name"] = $arg1 . '[]';} //should be serealized
+				if($arg2){$atts["value"] = $arg2;}
+				if($arg3){$atts[] = "checked";}
+				
+				break;
+				
 				default:
 				if($pseudoTag == ""){
 					return "ERROR: You must at least provide ONE argument to the function qtag()";
