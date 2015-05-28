@@ -3236,7 +3236,12 @@ function tag($tagName, $attributes = array(), $content = ""){
 				$atts[] = "hidden";
 				if($arg1){$atts["value"] = $arg1;}
 				if($arg2){$atts["name"] = $arg2;}
+				break;
 				
+				case "submit":
+				$tagName = "input";
+				$atts["type"] = "submit";
+				if($arg1){$atts["value"] = $arg1;}
 				break;
 				
 				default:
