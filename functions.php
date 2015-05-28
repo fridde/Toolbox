@@ -3076,7 +3076,7 @@
 		return $randomString;
 	}
 	
-	function as_tag(){
+	function echo_tag(){
 		
 		$tagArray = func_get_args();
 		$returnString = "";
