@@ -3254,8 +3254,9 @@ function tag($tagName, $content = "", $attributes = array()){
 				break;
 				
 				case "div":
-				if($arg1){$atts["class"] = $arg1;}
-				if($arg2){$atts["id"] = $arg2;}
+				if($arg1){$content = $arg1;}
+				if($arg2){$atts["class"] = $arg2;}
+				if($arg3){$atts["id"] = $arg3;}
 				break;
 				
 				default:
