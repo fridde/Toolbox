@@ -3236,6 +3236,8 @@ function tag($tagName, $content = "", $attributes = array()){
 				$atts[] = "hidden";
 				if($arg1){$atts["value"] = $arg1;}
 				if($arg2){$atts["name"] = $arg2;}
+				if($arg3){$atts["id"] = $arg3;}
+				
 				break;
 				
 				case "submit":
