@@ -3181,7 +3181,7 @@
 		return array_pop($args);
 	}
 	
-	function tag(){
+	function tag($tagName, $content = "", $attributes = array()){
 		
 		/* args: string $tagName, [array $attributes, string $content]
 			
@@ -3189,18 +3189,13 @@
 		/* these elements don't need to be closed*/
 		$void_elements = array("area","base","br","col","command","embed","hr","img","input","link","meta","param","source");
 		/* these elements will be included in case no attribute-array was given*/
-		$standardAttributes = array("meta" => array("http-equiv" => "Content-Type", "content" => "text/html; charset=UTF-8"));
 		
-		$args = func_get_args();
-		$tagName = array_shift($args);
 		$close = substr($tagName, 0, 1) == '/';
-		$attributes = array_shift($args);
-		$content = array_shift($args);
 		
 		$output = '<' . $tagName;
 		if(!$close){
 			$atts = array();
-			if(!is_null($attributes)){
+			if(count($attributes) > 0){
 				$atts = $attributes;
 			}
 			foreach($atts as $att => $attVal){
@@ -3209,7 +3204,6 @@
 			$output .= '>';
 			
 			if(!in_array($tagName, $void_elements)){
-				$content = (is_null($content) ? "" : $content);
 				$output .= $content . '</' . $tagName . '>';
 			}
 		}
