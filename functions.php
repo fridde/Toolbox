@@ -3153,7 +3153,7 @@
 		return array_pop($args);
 	}
 	
-function tag($tagName, $attributes = array(), $content = ""){
+function tag($tagName, $content = "", $attributes = array()){
 		
 		/* args: string $tagName, [array $attributes, string $content]
 			
@@ -3263,6 +3263,6 @@ function tag($tagName, $attributes = array(), $content = ""){
 				break;
 				
 			}
-			return tag($tagName, $atts, $content) . $additionalText;
+			return tag($tagName, $content, $atts) . $additionalText;
 			
 	}
