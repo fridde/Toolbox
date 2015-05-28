@@ -3153,9 +3153,7 @@
 		/* will return hidden fields. The array has to have the names given as array-keys and the values given as array-values */
 		$output = "";
 		foreach($array as $name => $value){
-			$output .= '<input type="hidden" value="';
-			$output .= $value . '" name="';
-			$output .= $name . '" >';
+			$output .= qtag("hidden", $value, $name);
 		}
 		return $output;
 	}
@@ -3181,7 +3179,7 @@
 		return array_pop($args);
 	}
 	
-	function tag($tagName, $content = "", $attributes = array()){
+function tag($tagName, $attributes = array(), $content = ""){
 		
 		/* args: string $tagName, [array $attributes, string $content]
 			
@@ -3199,7 +3197,12 @@
 				$atts = $attributes;
 			}
 			foreach($atts as $att => $attVal){
-				$output .= ' ' . $att . '="' . $attVal . '"';
+				if(is_int($att)){
+					$output .= ' ' . $attVal;
+				}
+				else {
+					$output .= ' ' . $att . '="' . $attVal . '"';
+				}
 			}
 			$output .= '>';
 			
@@ -3212,43 +3215,66 @@
 	}
 	
 	function qtag(){
-		/* will create a html-tag and chose from a set of standard variables
-			// argument 1 has to be the type, the rest of the arguments will be interpreted according to the standard
-			specified in the $def-array
-		*/
-		$maxNumberOfArgs = 10;
-		
-		$args =  func_get_args();
-		for($i = 0; $i < $maxNumberOfArgs ; $i++){
-			$argname = "arg" . $i;
-			$$argname = array_shift($args);
-			$$argname = (is_null($$argname) ? FALSE : $$argname);
-		}
-		$pseudoTag = ($arg0 ? $arg0 : "");
-		$tagName = "";
-		$atts = array();
-		$content = "";
-		
-		switch($pseudoTag){
-			case "textinput":
-			$tagName = "input";
-			if($arg1){$atts["name"] = $arg1;}
-			if($arg2){$atts["placeholder"] = $arg2;}
-			if($arg3){$atts["class"] = $arg3;}
-			if($arg4){$atts["id"] = $arg4;}
-			break;
-		
-		
-		default:
-		if($pseudoTag == ""){
-			return "ERROR: You must at least provide ONE argument to the function qtag()";
-		}
-		else {
-			return "ERROR: The function qtag() doesn't understand the tag name" . $pseudoTag;  
-		}
-		break;
-		
+			/* will create a html-tag and chose from a set of standard variables
+				// argument 1 has to be the type, the rest of the arguments will be interpreted according to the standard
+				specified in the switch-case
+			*/
+			$maxNumberOfArgs = 10;
+			
+			$args =  func_get_args();
+			for($i = 0; $i < $maxNumberOfArgs ; $i++){
+				$argname = "arg" . $i;
+				$$argname = array_shift($args);
+				$$argname = (is_null($$argname) ? FALSE : $$argname);
+			}
+			$pseudoTag = ($arg0 ? $arg0 : "");
+			$tagName = $pseudoTag;
+			$atts = array();
+			$content = "";
+			$additionalText = "";
+			
+			switch($pseudoTag){
+				case "textinput":
+				$tagName = "input";
+				$atts["type"] = "text";
+				if($arg1){$atts["name"] = $arg1;}
+				if($arg2){$atts["placeholder"] = $arg2;}
+				if($arg3){$atts["class"] = $arg3;}
+				if($arg4){$atts["value"] = $arg4;}
+				if($arg5){$atts["id"] = $arg5;
+					if($arg6){
+						$additionalText = tag("label", array("for" => $arg4), $arg5);
+					}
+				}
+				break;
+				
+				case "meta":
+				if($arg1){
+					$atts = $arg1;
+				}
+				else {
+					$atts = array("http-equiv" => "Content-Type", "content" => "text/html; charset=UTF-8");
+				}
+				break;
+				
+				case "hidden":
+				$tagName = "input";
+				$atts[] = "hidden";
+				if($arg1){$atts["value"] = $arg1;}
+				if($arg2){$atts["name"] = $arg2;}
+				
+				break;
+				
+				default:
+				if($pseudoTag == ""){
+					return "ERROR: You must at least provide ONE argument to the function qtag()";
+				}
+				else {
+					return "ERROR: The function qtag() doesn't understand the tag name" . $pseudoTag;  
+				}
+				break;
+				
+			}
+			return tag($tagName, $atts, $content) . $additionalText;
+			
 	}
-	return tag($tagName, $atts, $content);
-	
-}
