@@ -3253,6 +3253,11 @@ function tag($tagName, $content = "", $attributes = array()){
 				
 				break;
 				
+				case "div":
+				if($arg1){$atts["class"] = $arg1;}
+				if($arg2){$atts["id"] = $arg2;}
+				break;
+				
 				default:
 				if($pseudoTag == ""){
 					return "ERROR: You must at least provide ONE argument to the function qtag()";
