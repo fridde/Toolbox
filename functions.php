@@ -3401,18 +3401,19 @@
 		$attributes = array("class" => "container");
 		if($id){$attributes["id"] = $id;} 
 		
-		$content = "";
-		$ul = "";
-		$contentDiv = "";
+		list($content, $ul, $contentDiv) = array_fill(0,20,"");
+		$i = 0;
 		$firstElement = get_element($tabContent);
 		foreach($tabContent as $showName => $text){
+			$i++;
+			$tab_id = "tab_id_" . $i;
 			$liAtts = array();
-			$contentElementAtts = array("id" => $showName, "class" => "tab-pane fade");
+			$contentElementAtts = array("id" => $tab_id, "class" => "tab-pane fade");
 			if($showName == $firstElement){
 				$liAtts["class"] = "active";
 				$contentElementAtts["class"] .= " in active";
 			}
-			$li = tag("a", $showName, array("data-toggle" => "tab", "href" => "#" . $showName));
+			$li = tag("a", $showName, array("data-toggle" => "tab", "href" => "#" . $tab_id));
 			$ul .= tag("li", $li, $liAtts);
 			
 			$contentDiv .= tag("div", $text, $contentElementAtts);
