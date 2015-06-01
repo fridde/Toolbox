@@ -1,7 +1,8 @@
 <?php
 
-	function inc($inclusionString, $debug = FALSE){
+	function inc($inclusionString, $debug = FALSE, $return = FALSE){
 		
+		$returnString = "";
 		$inclusionArray = explode(",", $inclusionString);
 		$inclusionArray = array_map("trim", $inclusionArray);
 		
@@ -92,23 +93,23 @@
 				
 				case "2":
 				$file .= ".js";
-				echo '<script src="' . $file . '"> </script>' . PHP_EOL;
+				$output = '<script src="' . $file . '"> </script>' . PHP_EOL;
 				break;
 				
 				case "3":
 				$file = $subdir . $file . ".js";
-				echo '<script src="' . $file .  '"> </script>' . PHP_EOL;
+				$output = '<script src="' . $file .  '"> </script>' . PHP_EOL;
 				break;
 				
 				case "4":
 				$file .= ".css";
-				echo '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
+				$output = '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
 				
 				break;
 				
 				case "5":
 				$file = $subdir . $file . ".css";
-				echo '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
+				$output =  '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
 				break;
 				
 				default:
@@ -116,10 +117,19 @@
 					// Do nothing!
 				}
 				else {
-					echo '<!-- The index "'. $type . '" could not be found in the include.php file. -->' ;
+					$output = '<!-- The index "'. $type . '" could not be found in the include.php file. -->' ;
 				}
 				break;
 			}
+			if($return){
+				$returnString .= $output;
+			}
+			else {
+				echo $output;
+			}
+		}
+		if($return){
+			return $returnString;
 		}
 	}		
 	
