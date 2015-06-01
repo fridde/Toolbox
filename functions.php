@@ -3296,7 +3296,7 @@
 		
 	}
 	
-	funtion create_bootstrap_navbar($nav_args){
+	function create_bootstrap_navbar($nav_args){
 		/* will return an array with a the matching arguments for a bootstrap-navbar
 			the incoming arguments should be given as following
 			0: (string) type of navbar. Possible types: "" (for default), fixed (for fixed header)
@@ -3311,7 +3311,7 @@
 		$id = $nav_args[2];
 		$headerArray = $nav_args[3];
 		$attributes = array("class" => "navbar");
-		if($id){$attributes["id"] => $id;}
+		if($id){$attributes["id"] = $id;}
 		
 		switch($type){
 			case "fixed":
@@ -3338,14 +3338,14 @@
 		foreach($links as $side => $linkList){
 			foreach($linkList as $showName => $link){
 				if(gettype($link) == "array"){
-					$dd_preText = tag("a", $showName . qtag("span", "caret"), array("class" => "dropdown-toggle", "data-toggle"=> "dropdown", "href" => "#"));
+					$dd_preText = tag("a", $showName . qtag("span", "" , "caret"), array("class" => "dropdown-toggle", "data-toggle"=> "dropdown", "href" => "#"));
 					$dd_menu = "";
 					foreach($link as $ddShowName => $dropdownListLink){
 						$a = qtag("a", $ddShowName, $dropdownListLink);
 						$l = tag("li", $a);
 						$dd_menu .= $l;
 					}
-					$dd_list = qtag("ul", $dd_menu ,"dropdown-menu")
+					$dd_list = qtag("ul", $dd_menu ,"dropdown-menu");
 					$l = tag("li", $dd_preText . $dd_list, "dropdown");
 					$linkContent[$side] .= $l;
 				}
@@ -3356,16 +3356,16 @@
 				}
 			}
 		}
-		
+		 
 		
 		$navbarContent = qtag("ul", $linkContent["LEFT"] , "nav navbar-nav");
-		if($linkContent["RIGHT"]) != ""){
+		if($linkContent["RIGHT"] != ""){
 			$navbarContent .= qtag("ul", $linkContent["RIGHT"], "nav navbar-nav navbar-right");
 		} 
 		$div0_1 = qtag("div", $header, "navbar-header");
 		$div0_2 = qtag("div", $navbarContent);
-		$div0 = qtag("div", $div0_1 . $div_0_2, "container-fluid");
-		
+		$div0 = qtag("div", $div0_1 . $div0_2, "container-fluid");
+		$content = $div0;
 		$resultArray = array("content" => $content, "attributes" => $attributes);
 		return $resultArray;
 		
@@ -3376,5 +3376,5 @@
 		/* will return an element of an array adressed by number instead of key*/
 		$array_values = array_values($array);
 		
-		return $array_values[$number]);	
+		return $array_values[$number];	
 	}						
