@@ -3289,7 +3289,7 @@
 			case "fa": //font-awesome
 			$tagName = "i";
 			$atts["class"] = "fa fa-" . $arg1;
-			if($arg2){$atts["class"] .= "fa-" . $arg2;}  //size
+			if($arg2){$atts["class"] .= " fa-" . $arg2;}  //size
 			if($arg3){$atts["id"] = $arg3;}
 			break;
 			
