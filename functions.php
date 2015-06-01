@@ -3293,6 +3293,13 @@
 			if($arg3){$atts["id"] = $arg3;}
 			break;
 			
+			case "tabs":
+			$tab_args = array_slice($args, 1);
+			$tabOutput = create_bootstrap_tabs($tab_args);
+			$tagName = "div";
+			$content = $tabOutput["content"];
+			$atts = $tabOutput["attributes"];
+			
 			default:
 			if($pseudoTag == ""){
 				return "ERROR: You must at least provide ONE argument to the function qtag()";
@@ -3386,9 +3393,50 @@
 		
 	}
 	
-	function get_element($array, $number = 0){
-		/* will return an element of an array adressed by number instead of key*/
-		$array_values = array_values($array);
+	function create_bootstrap_tabs($tab_args){
 		
-		return $array_values[$number];	
+		$type = $tab_args[0]; // yet unused
+		$tabContent = $tab_args[1]; 
+		$id = $tab_args[2];
+		$attributes = array("class" => "container");
+		if($id){$attributes["id"] = $id;} 
+		
+		$content = "";
+		$ul = "";
+		$contentDiv = "";
+		$firstElement = get_element($tabContent);
+		foreach($tabContent as $showName => $text){
+			$liAtts = array();
+			$contentElementAtts = array("id" => $showName, "class" => "tab-pane fade");
+			if($showName == $firstElement){
+				$liAtts["class"] = "active";
+				$contentElementAtts["class"] .= " in active";
+			}
+			$li = tag("a", $showName, array("data-toggle" => "tab", "href" => "#" . $showName));
+			$ul .= tag("li", $li, $liAtts);
+			
+			$contentDiv .= tag("div", $text, $contentElementAtts);
+		}
+		$content .= qtag("ul", $ul, "nav nav-tabs");
+		
+		$content .= qtag("div", $contentDiv, "tab-content");
+
+		$resultArray = array("content" => $content, "attributes" => $attributes);
+		return $resultArray;
+	}
+	
+	function get_element($array, $type = "index", $number = 0){
+		/* will return an element of an array adressed by number instead of key*/
+		$returnObject = "";
+		
+		if($type == "index"){
+			$array_keys = array_keys($array);
+			$returnObject = $array_keys[$number];
+		}
+		elseif($type = "key") {
+			$array_values = array_values($array);
+			$returnObject = $array_values[$number];
+		}
+		
+		return $returnObject;
 	}							
