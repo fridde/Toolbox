@@ -3279,6 +3279,20 @@
 			if($arg4){$atts["id"] = $arg4;}			
 			break;
 			
+			case "uicon":
+			$tagName = "span";
+			$atts["class"] = "ui-icon ui-icon-" . $arg1;
+			if($arg2){$atts["id"] = $arg2;}
+			
+			break;
+			
+			case "fa": //font-awesome
+			$tagName = "i";
+			$atts["class"] = "fa fa-" . $arg1;
+			if($arg2){$atts["class"] .= "fa-" . $arg2;}  //size
+			if($arg3){$atts["id"] = $arg3;}
+			break;
+			
 			default:
 			if($pseudoTag == ""){
 				return "ERROR: You must at least provide ONE argument to the function qtag()";
@@ -3356,7 +3370,7 @@
 				}
 			}
 		}
-		 
+		
 		
 		$navbarContent = qtag("ul", $linkContent["LEFT"] , "nav navbar-nav");
 		if($linkContent["RIGHT"] != ""){
@@ -3377,4 +3391,4 @@
 		$array_values = array_values($array);
 		
 		return $array_values[$number];	
-	}						
+	}							
