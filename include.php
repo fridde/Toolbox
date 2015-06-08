@@ -8,7 +8,7 @@
 		
 		/* a string to simplify finding a matching key */
 		$translationString = "000:fnc ; 001:sql ; 101:cal ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
-		206:DTfH ; 207:bootjs ; 302:DTin ; 303:init ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ; 
+		206:DTfH ; 207:bootjs ; 302:DTin ; 303:init ; 304:star ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ; 
 		406:boottheme ; 407:fAwe ; 503:css"; 
 		$translationArray = array();
 		foreach(explode(";", $translationString) as $pair){
@@ -37,6 +37,7 @@
 		"301" => "/bostad/inc/datatables_init",
 		"302" => "/inc/datatables_init",
 		"303" => "/inc/init",
+		"304" => "/inc/bootstrap-star-rating/js/star-rating.min"
 		/* remote css files */
 		"400" => "//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui",
 		"401" => "//cdn.datatables.net/1.10.7/css/jquery.dataTables.min",
