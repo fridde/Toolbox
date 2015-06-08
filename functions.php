@@ -3153,9 +3153,9 @@
 		return array_pop($args);
 	}
 	
-	function tag($tagName, $content = "", $attributes = array()){
+	function tag($tagName, $content = "", $attributes = array(), $id = ""){
 		
-		/* args: string $tagName, [array $attributes, string $content]
+		/* args: string $tagName, [string $content, array $attributes OR string $class]
 			
 		*/
 		/* these elements don't need to be closed*/
@@ -3167,9 +3167,16 @@
 		$output = '<' . $tagName;
 		if(!$close){
 			$atts = array();
-			if(count($attributes) > 0){
+			if(gettype($attributes) == "string"){
+				$atts["class"] = $attributes;
+				if($id != ""){
+					$atts["id"] = $id;
+				}
+			}
+			elseif(gettype($attributes) == "array" && count($attributes) > 0){
 				$atts = $attributes;
 			}
+			
 			foreach($atts as $att => $attVal){
 				if(is_int($att)){
 					$output .= ' ' . $attVal;
@@ -3421,7 +3428,7 @@
 		$content .= qtag("ul", $ul, "nav nav-tabs");
 		
 		$content .= qtag("div", $contentDiv, "tab-content");
-
+		
 		$resultArray = array("content" => $content, "attributes" => $attributes);
 		return $resultArray;
 	}
