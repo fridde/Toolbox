@@ -7,7 +7,7 @@
 		$inclusionArray = array_map("trim", $inclusionArray);
 		
 		/* a string to simplify finding a matching key */
-		$translationString = "000:fnc ; 001:sql ; 101:cal ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
+		$translationString = "000:fnc ; 001:sql ; 002:pdown ; 101:cal ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
 		206:DTfH ; 207:bootjs ; 302:DTin ; 303:init ; 304:star ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ; 
 		406:boottheme ; 407:fAwe ; 503:css"; 
 		$translationArray = array();
@@ -20,6 +20,7 @@
 		/* remote php files that have to be copied to the local server first */
 		"000" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/functions",
 		"001" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/sql_functions",
+		"002" => "https://raw.githubusercontent.com/erusev/parsedown/master/Parsedown",
 		/* local php files */
 		"100" => "inc/misc_functions",
 		"101" => "inc/calendar_functions",
