@@ -125,7 +125,7 @@ function sql_insert_rows($sqlTable, $array, $forceId = FALSE, $maxString = 5000,
 
 }
 
-function sql_select($sqlTable, $criteria = "", $headers = "all", $not = FALSE, $debug = FALSE) {
+function sql_select($sqlTable, $criteria = "", $headers = "all", $debug = FALSE) {
 
 	/* criteria can be given in 3 different forms
 	* 1. as a string written in SQL
@@ -139,7 +139,8 @@ function sql_select($sqlTable, $criteria = "", $headers = "all", $not = FALSE, $
 	*          "WHERE header1 = 'value1' AND header2 = "value2" AND ...
 	*  */
 
-	$equalSign = ($not ? "<>" : "=");
+	$equalSign = "=";
+	$notEqualSign = "<>";
 	$query = "SELECT ";
 	if ($headers === "all") {
 		$query .= "* ";
@@ -182,9 +183,11 @@ function sql_select($sqlTable, $criteria = "", $headers = "all", $not = FALSE, $
 			foreach($rightArray as $right){
 				if(strtolower(substr($right, 0, 4)) == "not:"){
 					$right = substr($right, 4);
-					$equalSign = '<>';
+					$criteriaArray[] = '`' . $left . "` " . $notEqualSign . " '" . $right . "' ";
 				}
-				$criteriaArray[] = '`' . $left . "` " . $equalSign . " '" . $right . "' ";
+				else {
+					$criteriaArray[] = '`' . $left . "` " . $equalSign . " '" . $right . "' ";
+				}
 			}
 		}
 		$criteriaString .= implode($glue, $criteriaArray);
