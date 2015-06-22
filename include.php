@@ -1,22 +1,22 @@
 <?php
 
-	function inc($inclusionString, $debug = FALSE, $return = FALSE){
-		
-		$returnString = "";
-		$inclusionArray = explode(",", $inclusionString);
-		$inclusionArray = array_map("trim", $inclusionArray);
-		
-		/* a string to simplify finding a matching key */
-		$translationString = "000:fnc ; 001:sql ; 002:pdown ; 101:cal ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
-		206:DTfH ; 207:bootjs ; 302:DTin ; 303:init ; 304:star ; 305:jcount ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ; 
-		406:boottheme ; 407:fAwe ; 503:css"; 
-		$translationArray = array();
-		foreach(explode(";", $translationString) as $pair){
-			$thisPair = explode(":", $pair);
-			$translationArray[trim($thisPair[1])] = trim($thisPair[0]);
-		}
-		
-		$files = array(
+function inc($inclusionString, $debug = FALSE, $return = FALSE){
+
+	$returnString = "";
+	$inclusionArray = explode(",", $inclusionString);
+	$inclusionArray = array_map("trim", $inclusionArray);
+
+	/* a string to simplify finding a matching key */
+	$translationString = "000:fnc ; 001:sql ; 002:pdown ; 101:cal ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
+	206:DTfH ; 207:bootjs ; 302:DTin ; 303:init ; 304:star ; 305:jcount ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ;
+	406:boottheme ; 407:fAwe ; 503:css";
+	$translationArray = array();
+	foreach(explode(";", $translationString) as $pair){
+		$thisPair = explode(":", $pair);
+		$translationArray[trim($thisPair[1])] = trim($thisPair[0]);
+	}
+
+	$files = array(
 		/* remote php files that have to be copied to the local server first */
 		"000" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/functions",
 		"001" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/sql_functions",
@@ -54,91 +54,93 @@
 		"501" => "/lib/DataTables/extensions/TableTools/css/dataTables.tableTools",
 		"502" => "/lib/DataTables/extensions/Editor-1.3.3/css/dataTables.editor",
 		"503" => "/inc/stylesheet",
-		);
-		
-		$subdir = get_current_subfolder();
-		$alreadyIncluded = array();
-		
-		foreach($inclusionArray as $searchValue){
-			$file = "";
-			
-			if(isset($translationArray[$searchValue])){
-				$searchValue = $translationArray[$searchValue];
+	);
+
+	$subdir = get_current_subfolder();
+	$alreadyIncluded = array();
+
+	foreach($inclusionArray as $searchValue){
+		$file = "";
+
+		if(isset($translationArray[$searchValue])){
+			$searchValue = $translationArray[$searchValue];
+		}
+
+		if(isset($files[$searchValue])){
+			$file = $files[$searchValue];
+		}
+		if(in_array($searchValue, $alreadyIncluded)){
+			$type = "skip";
+		}
+		else {
+			$type = floor($searchValue / 100.0);
+			$alreadyIncluded[] = $searchValue;
+		}
+
+		$output = FALSE;
+
+		switch($type){
+			case "0":
+			$file .=  ".php";
+			$content = file_get_contents($file);
+			$name = explode("/", $file);
+			$name = "inc/" . end($name);
+			if($content != FALSE && !$debug){
+				file_put_contents($name, $content);
 			}
-			
-			if(isset($files[$searchValue])){
-				$file = $files[$searchValue];
-			}
-			if(in_array($searchValue, $alreadyIncluded)){
-				$type = "skip";
-			}
-			else {
-				$type = floor($searchValue / 100.0);
-				$alreadyIncluded[] = $searchValue;
-			}
-			
-			switch($type){ 
-				case "0":
-				$file .=  ".php";
-				$content = file_get_contents($file);
-				$name = explode("/", $file);
-				$name = "inc/" . end($name);
-				if($content != FALSE && !$debug){
-					file_put_contents($name, $content);
-				}
-				include $name;
-				break;
-				
-				case "1":
-				$file .= ".php";
-				include $file;
-				break;
-				
-				case "2":
-				$file .= ".js";
-				$output = '<script src="' . $file . '"> </script>' . PHP_EOL;
-				break;
-				
-				case "3":
-				$file = $subdir . $file . ".js";
-				$output = '<script src="' . $file .  '"> </script>' . PHP_EOL;
-				break;
-				
-				case "4":
-				$file .= ".css";
-				$output = '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
-				
-				break;
-				
-				case "5":
-				$file = $subdir . $file . ".css";
-				$output =  '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
-				break;
-				
-				default:
-				if($type == "skip"){
-					// Do nothing!
-				}
-				else {
-					$output = '<!-- The index "'. $type . '" could not be found in the include.php file. -->' ;
-				}
-				break;
-			}
-			if($return){
-				$returnString .= $output;
+			include $name;
+			break;
+
+			case "1":
+			$file .= ".php";
+			include $file;
+			break;
+
+			case "2":
+			$file .= ".js";
+			$output = '<script src="' . $file . '"> </script>' . PHP_EOL;
+			break;
+
+			case "3":
+			$file = $subdir . $file . ".js";
+			$output = '<script src="' . $file .  '"> </script>' . PHP_EOL;
+			break;
+
+			case "4":
+			$file .= ".css";
+			$output = '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
+
+			break;
+
+			case "5":
+			$file = $subdir . $file . ".css";
+			$output =  '<link rel="stylesheet" type="text/css" href="' .  $file . '">';
+			break;
+
+			default:
+			if($type == "skip"){
+				// Do nothing!
 			}
 			else {
-				echo $output;
+				$output = '<!-- The index "'. $type . '" could not be found in the include.php file. -->' ;
 			}
+			break;
 		}
 		if($return){
-			return $returnString;
+			$returnString .= $output;
 		}
-	}		
-	
-	function get_current_subfolder(){
-
-		$path = explode("/", $_SERVER['PHP_SELF']);
-		array_pop($path);
-		return implode("/", $path);
+		elseif($output) {
+			echo $output;
+		}
 	}
+	if($return){
+		return $returnString;
+	}
+}
+
+function get_current_subfolder(){
+
+	$path = explode("/", $_SERVER['PHP_SELF']);
+	array_pop($path);
+	return implode("/", $path);
+}
