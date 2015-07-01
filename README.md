@@ -14,7 +14,8 @@ To include these and other files, put this preamble above your code:
 
 Now the function ```inc()``` is defined and you can include from several sources given in ```include.php``` by using, for example,
 ```
-inc("000, 001");
+inc("000, 001"); // OR
+inc("fnc, sql"); // if defined 
 ```
 Observe that includes from javascript and CSS have to be made in the header of the html-file, not before.
 
