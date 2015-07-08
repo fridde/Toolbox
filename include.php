@@ -9,7 +9,7 @@ function inc($inclusionString, $debug = FALSE, $return = FALSE){
 	/* a string to simplify finding a matching key */
 	$translationString = "000:fnc ; 001:sql ; 002:pdown ; 101:cal ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
 	206:DTfH ; 207:bootjs ; 302:DTin ; 303:init ; 304:star ; 305:jcount ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ;
-	406:boottheme ; 407:fAwe ; 503:css";
+	406:boottheme ; 407:fAwe ; 503:css ; 504:starCSS";
 	$translationArray = array();
 	foreach(explode(";", $translationString) as $pair){
 		$thisPair = explode(":", $pair);
@@ -54,6 +54,7 @@ function inc($inclusionString, $debug = FALSE, $return = FALSE){
 		"501" => "/lib/DataTables/extensions/TableTools/css/dataTables.tableTools",
 		"502" => "/lib/DataTables/extensions/Editor-1.3.3/css/dataTables.editor",
 		"503" => "/inc/stylesheet",
+		"504" => "/inc/bootstrap-star-rating/css/star-rating.min"
 	);
 
 	$subdir = get_current_subfolder();
