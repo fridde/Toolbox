@@ -3448,3 +3448,36 @@
 		
 		return $returnObject;
 	}							
+	
+	
+	class HTML extends DOMDocument{
+		function __construct(){
+			parent::__construct('1.0','iso-8859-1' );
+			$this->formatOutput = true;
+		}
+		
+		public  function saveHTML(){
+			return  html_entity_decode(parent::saveHTML());
+		}
+		
+		public function create(){
+			
+			$args = func_get_args();
+			$content = (isset($args[1]) ? $args[1] : "");
+			$attributes = (isset($args[2]) ? $args[2] : array());
+			$element = $this->createElement($args[0], $content);
+			
+			foreach($attributes as $attName => $attValue){
+				$element->setAttribute($attName, $attValue);
+			}
+			$this->appendChild($element);
+			
+			return $element;
+		}
+		
+		public function button(){
+			$temp= $this->createElement('input');
+			$temp->setAttribute('type','button');
+			return $temp;
+		}
+	}				
