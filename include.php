@@ -58,6 +58,7 @@ function inc($inclusionString, $debug = FALSE, $return = FALSE){
 		"504" => "/inc/bootstrap-star-rating/css/star-rating.min"
 	);
 
+	
 	$subdir = get_current_subfolder();
 	$alreadyIncluded = array();
 
