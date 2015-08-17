@@ -41,7 +41,7 @@
 		foreach ($array as $rowIndex => $row) {
 			$newRow = array();
 			foreach ($row as $colName => $value) {
-				if (isset($translationArray[$colName])) {
+				if (isset($translationArray[$colName]) && trim($translationArray[$colName]) != "") {
 					$newRow[$translationArray[$colName]] = $value;
 					} else {
 					$newRow[$colName] = $value;
