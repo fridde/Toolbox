@@ -40,6 +40,7 @@ function inc($inclusionString, $debug = FALSE, $return = FALSE){
 		"303" => "/inc/init",
 		"304" => "/inc/bootstrap-star-rating/js/star-rating.min",
 		"305" => "/inc/jquery.countdown.min",
+		"306" = "/inc/user_init",
 		/* remote css files */
 		"400" => "//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui",
 		"401" => "//cdn.datatables.net/1.10.7/css/jquery.dataTables.min",
