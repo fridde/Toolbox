@@ -3112,7 +3112,13 @@
 			}
 		}
 		
-		return $returnArray;
+		if($onlyFirst){
+			$returnValue = reset($returnArray);
+			} else {
+			$returnValue = $returnArray;
+		}
+		
+		return $returnValue;
 	}
 	
 	function activate_all_errors(){
@@ -3128,474 +3134,474 @@
     	return $deg+((($min*60)+($sec))/3600);
 	}
 	
-	function DECtoDMS($dec)
-	{
-		
-		// Converts decimal longitude / latitude to DMS
-		// ( Degrees / minutes / seconds ) 
-		
-		// This is the piece of code which may appear to 
-		// be inefficient, but to avoid issues with floating
-		// point math we extract the integer part and the float
-		// part by using a string function.
-		
-		$vars = explode(".",$dec);
-	$deg = $vars[0];
-	$tempma = "0.".$vars[1];
-	
-	$tempma = $tempma * 3600;
-	$min = floor($tempma / 60);
-	$sec = $tempma - ($min*60);
-	
-	return array("deg"=>$deg,"min"=>$min,"sec"=>$sec);
-	}
-	
-	function array_walk_values($array, $function){
-	/* will return an array where a function that accepts a single parameter has been applied
-	it's practically a simplification of array_walk. Note that it returns a value!*/
-	
-	$returnArray = array();
-	foreach($array as $index => $value){
-	$returnArray[$index] = $function($value);
-	}	
-	
-	return $returnArray;
-	}
-	
-	function array_choose_columns($array, $columns, $remove = FALSE){
-	/* will take a rectangular array and choose or remove certain columns.
-	array: the array to choose from
-	columns: an array that contains all the columns
-	remove: a boolean that tells whether the columns given in the parameter "columns" should be selected or removed from the array. If TRUE, all columns EXCEPT the given columns are chosen.
-	*/
-	$resultArray = array();
-	foreach($array as $row){
-	$rowToAdd = array();
-	foreach($row as $key => $value){
-	$inArray = in_array($key, $columns);
-	if(($inArray && !$remove) || (!$inArray && $remove)){
-	$rowToAdd[$key] = $value;
-	}
-	
-	}
-	$resultArray[] = $rowToAdd;
-	}
-	
-	return $resultArray;
-	}
-	
-	function generateRandomString($length = 10) {
-	$characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-	$charactersLength = strlen($characters);
-	$randomString = '';
-	for ($i = 0; $i < $length; $i++) {
-	$randomString .= $characters[rand(0, $charactersLength - 1)];
-	}
-	return $randomString;
-	}
-	
-	function echo_tag(){
-	
-	$tagArray = func_get_args();
-	$returnString = "";
-	
-	foreach($tagArray as $tag){
-	$returnString .= "<" . $tag . ">";
-	}
-	echo $returnString;
-	
-	}
-	
-	function extract_request($translationArray = array(), $prefix = "req_"){
-	global $_REQUEST;
-	$returnArray = array();
-	
-	$newTranslationArray = array();
-	foreach($translationArray as $key => $value){
-	if(gettype($key) == "integer"){
-	$newTranslationArray[$value] = $value;
-	}
-	else {
-	$newTranslationArray[$key] = $value;
-	}
-	}
-	$translationArray = $newTranslationArray;
-	
-	foreach($_REQUEST as $key => $value){
-	if(isset($translationArray[$key])){
-	$varName = $translationArray[$key];
-	}
-	else {
-	$varName = $prefix . $key;
-	}
-	$returnArray[$varName] = $value;
-	}
-	foreach($translationArray as $key => $value){
-	if(!isset($returnArray[$value])){
-	$returnArray[$value] = FALSE;
-	}
-	}
-	
-	return $returnArray;
-	
-	}
-	
-	function add_hidden_fields($array){
-	
-	/* will return hidden fields. The array has to have the names given as array-keys and the values given as array-values */
-	$output = "";
-	foreach($array as $name => $value){
-	$output .= qtag("hidden", $value, $name);
-	}
-	return $output;
-	}
-	
-	function array_orderby(){
-	/* Will sort a 2d-array according to own rules
-	Pass the array, followed by the column names and sort flags
-	$sorted = array_orderby($data, 'volume', SORT_DESC, 'edition', SORT_ASC);
-	*/
-	
-	$args = func_get_args();
-	$data = array_shift($args);
-	foreach ($args as $n => $field) {
-	if (is_string($field)) {
-	$tmp = array();
-	foreach ($data as $key => $row)
-	$tmp[$key] = $row[$field];
-	$args[$n] = $tmp;
-	}
-	}
-	$args[] = &$data;
-	call_user_func_array('array_multisort', $args);
-	return array_pop($args);
-	}
-	
-	function tag($tagName, $content = "", $attributes = array(), $id = ""){
-	
-	/* args: string $tagName, [string $content, array $attributes OR string $class]
-	
-	*/
-	/* these elements don't need to be closed*/
-	$void_elements = array("area","base","br","col","command","embed","hr","img","input","link","meta","param","source");
-	/* these elements will be included in case no attribute-array was given*/
-	
-	$close = substr($tagName, 0, 1) == '/';
-	
-	$output = '<' . $tagName;
-	if(!$close){
-	$atts = array();
-	if(gettype($attributes) == "string"){
-	$atts["class"] = $attributes;
-	if($id != ""){
-	$atts["id"] = $id;
-	}
-	}
-	elseif(gettype($attributes) == "array" && count($attributes) > 0){
-	$atts = $attributes;
-	}
-	
-	foreach($atts as $att => $attVal){
-	if(is_int($att)){
-	$output .= ' ' . $attVal;
-	}
-	else {
-	$output .= ' ' . $att . '="' . $attVal . '"';
-	}
-	}
-	$output .= '>';
-	
-	if(!in_array($tagName, $void_elements)){
-	$output .= $content . '</' . $tagName . '>';
-	}
-	}
-	
-	return $output;
-	}
-	
-	function qtag(){
-	/* will create a html-tag and chose from a set of standard variables
-	// argument 1 has to be the type, the rest of the arguments will be interpreted according to the standard
-	specified in the switch-case
-	*/
-	$maxNumberOfArgs = 10;
-	
-	$args =  func_get_args();
-	$arguments = $args;
-	$args = array(); // we want to preserve $args, but as an array with exactly $maxNumberOfArgs arguments
-	/* creates a number of variables called arg1, arg2, ..., arg9 (if $maxNumberOfArgs = 10)*/
-	for($i = 0; $i < $maxNumberOfArgs ; $i++){
-	$argname = "arg" . $i;
-	$$argname = array_shift($arguments);
-	$$argname = (is_null($$argname) ? FALSE : $$argname);
-	$args[] = $$argname;
-	}
-	$pseudoTag = ($arg0 ? $arg0 : "");
-	$tagName = $pseudoTag;
-	$atts = array();
-	$content = "";
-	$additionalText = "";
-	
-	switch($pseudoTag){
-	case "textinput":
-	$tagName = "input";
-	$atts["type"] = "text";
-	if($arg1){$atts["name"] = $arg1;}
-	if($arg2){$atts["placeholder"] = $arg2;}
-	if($arg3){$atts["class"] = $arg3;}
-	if($arg4){$atts["value"] = $arg4;}
-	if($arg5){$atts["id"] = $arg5;
-	if($arg6){
-	$additionalText = tag("label", array("for" => $arg4), $arg5);
-	}
-	}
-	break;
-	
-	case "meta":
-	if($arg1){
-	$atts = $arg1;
-	}
-	else {
-	$atts = array("http-equiv" => "Content-Type", "content" => "text/html; charset=UTF-8");
-	}
-	break;
-	
-	case "hidden":
-	$tagName = "input";
-	$atts[] = "hidden";
-	if($arg1){$atts["value"] = $arg1;}
-	if($arg2){$atts["name"] = $arg2;}
-	if($arg3){$atts["id"] = $arg3;}
-	
-	break;
-	
-	case "submit":
-	$tagName = "input";
-	$atts["type"] = "submit";
-	if($arg1){$atts["value"] = $arg1;}
-	break;
-	
-	case "checkbox":
-	$tagName = "input";
-	$atts["type"] = "checkbox";
-	if($arg1){$atts["name"] = $arg1 . '[]';} //should be serealized
-	if($arg2){$atts["value"] = $arg2;}
-	if($arg3){$atts[] = "checked";}
-	
-	break;
-	
-	case "div":
-	if($arg1){$content = $arg1;}
-	if($arg2){$atts["class"] = $arg2;}
-	if($arg3){$atts["id"] = $arg3;}
-	break;
-	
-	case "nav":
-	$nav_args = array_slice($args, 1);
-	$navBarOutput = create_bootstrap_navbar($nav_args);
-	$content = $navBarOutput["content"];
-	$atts = $navBarOutput["attributes"];
-	break;
-	
-	case "a":
-	if($arg1){$content = $arg1;}
-	if($arg2){$atts["href"] = $arg2;}
-	if($arg3){$atts["class"] = $arg3;}
-	if($arg4){$atts["id"] = $arg4;}			
-	break;
-	
-	case "uicon":
-	$tagName = "span";
-	$atts["class"] = "ui-icon ui-icon-" . $arg1;
-	if($arg2){$atts["id"] = $arg2;}
-	
-	break;
-	
-	case "fa": //font-awesome
-	$tagName = "i";
-	$atts["class"] = "fa fa-" . $arg1;
-	if($arg2){$atts["class"] .= " fa-" . $arg2;}  //size
-	if($arg3){$atts["id"] = $arg3;}
-	break;
-	
-	case "tabs":
-	$tab_args = array_slice($args, 1);
-	$tabOutput = create_bootstrap_tabs($tab_args);
-	$tagName = "div";
-	$content = $tabOutput["content"];
-	$atts = $tabOutput["attributes"];
-	
-	default:
-	if($pseudoTag == ""){
-	return "ERROR: You must at least provide ONE argument to the function qtag()";
-	}
-	else {
-	if($arg1){$content = $arg1;}
-	if($arg2){$atts["class"] = $arg2;}
-	if($arg3){$atts["id"] = $arg3;}
-	
-	}
-	break;
-	
-	}
-	return tag($tagName, $content, $atts) . $additionalText;
-	
-	}
-	
-	function create_bootstrap_navbar($nav_args){
-	/* will return an array with a the matching arguments for a bootstrap-navbar
-	the incoming arguments should be given as following
-	0: (string) type of navbar. Possible types: "" (for default), fixed (for fixed header)
-	1: (array) links: in the form of "Name to Show" => "link to lead to"
-	If a menu-item should have a dropdown instead, build a recursive array, e.g. array("Homepage" => "index.html", "Topics" => array("Cars" => "cars.html", "Horses" => "horses.html"), "About me" => "about.html")
-	If your navbar should contain a left and right menu, the link-array should contain exactly two arrays with the keys given as LEFT and RIGHT
-	2: (string) id of the navbar
-	3: (array) header of the site given as a double
-	*/
-	$type = $nav_args[0];
-	$links = $nav_args[1];
-	$id = $nav_args[2];
-	$headerArray = $nav_args[3];
-	$attributes = array("class" => "navbar");
-	if($id){$attributes["id"] = $id;}
-	
-	switch($type){
-	case "fixed":
-	$attributes["class"] .= " navbar-default navbar-fixed-top";
-	break;
-	
-	default:
-	$attributes["class"] .= " navbar-default";
-	break;
-	}
-	
-	$header = "";
-	if($headerArray){
-	$displayName = array_keys($headerArray);
-	$displayName = $displayName[0];
-	$link = $headerArray[$displayName];
-	$header .= tag("a", $displayName, array("href" => $link, "class" => "navbar-brand"));
-	}
-	$linkContent = array("LEFT" => "", "RIGHT" => "");
-	if(!(count($links) == 2 && isset($links["LEFT"]) && isset($links["RIGHT"]))){			
-	$links = array("LEFT" => $links, "RIGHT" => array());
-	}
-	
-	foreach($links as $side => $linkList){
-	foreach($linkList as $showName => $link){
-	if(gettype($link) == "array"){
-	$dd_preText = tag("a", $showName . qtag("span", "" , "caret"), array("class" => "dropdown-toggle", "data-toggle"=> "dropdown", "href" => "#"));
-	$dd_menu = "";
-	foreach($link as $ddShowName => $dropdownListLink){
-	$a = qtag("a", $ddShowName, $dropdownListLink);
-	$l = tag("li", $a);
-	$dd_menu .= $l;
-	}
-	$dd_list = qtag("ul", $dd_menu ,"dropdown-menu");
-	$l = tag("li", $dd_preText . $dd_list, "dropdown");
-	$linkContent[$side] .= $l;
-	}
-	else {
-	$a = qtag("a", $showName, $link);
-	$l = tag("li", $a);
-	$linkContent[$side] .= $l;
-	}
-	}
-	}
-	
-	
-	$navbarContent = qtag("ul", $linkContent["LEFT"] , "nav navbar-nav");
-	if($linkContent["RIGHT"] != ""){
-	$navbarContent .= qtag("ul", $linkContent["RIGHT"], "nav navbar-nav navbar-right");
-	} 
-	$div0_1 = qtag("div", $header, "navbar-header");
-	$div0_2 = qtag("div", $navbarContent);
-	$div0 = qtag("div", $div0_1 . $div0_2, "container-fluid");
-	$content = $div0;
-	$resultArray = array("content" => $content, "attributes" => $attributes);
-	return $resultArray;
-	
-	
-	}
-	
-	function create_bootstrap_tabs($tab_args){
-	
-	$type = $tab_args[0]; // yet unused
-	$tabContent = $tab_args[1]; 
-	$id = $tab_args[2];
-	$attributes = array("class" => "container");
-	if($id){$attributes["id"] = $id;} 
-	
-	list($content, $ul, $contentDiv) = array_fill(0,20,"");
-	$i = 0;
-	$firstElement = get_element($tabContent);
-	foreach($tabContent as $showName => $text){
-	$i++;
-	$tab_id = "tab_id_" . $i;
-	$liAtts = array();
-	$contentElementAtts = array("id" => $tab_id, "class" => "tab-pane fade");
-	if($showName == $firstElement){
-	$liAtts["class"] = "active";
-	$contentElementAtts["class"] .= " in active";
-	}
-	$li = tag("a", $showName, array("data-toggle" => "tab", "href" => "#" . $tab_id));
-	$ul .= tag("li", $li, $liAtts);
-	
-	$contentDiv .= tag("div", $text, $contentElementAtts);
-	}
-	$content .= qtag("ul", $ul, "nav nav-tabs");
-	
-	$content .= qtag("div", $contentDiv, "tab-content");
-	
-	$resultArray = array("content" => $content, "attributes" => $attributes);
-	return $resultArray;
-	}
-	
-	function get_element($array, $type = "index", $number = 0){
-	/* will return an element of an array adressed by number instead of key*/
-	$returnObject = "";
-	
-	if($type == "index"){
-	$array_keys = array_keys($array);
-	$returnObject = $array_keys[$number];
-	}
-	elseif($type = "key") {
-	$array_values = array_values($array);
-	$returnObject = $array_values[$number];
-	}
-	
-	return $returnObject;
-	}							
-	
-	
-	class HTML extends DOMDocument{
-	function __construct(){
-	parent::__construct('1.0','iso-8859-1' );
-	$this->formatOutput = true;
-	}
-	
-	public  function saveHTML(){
-	return  html_entity_decode(parent::saveHTML());
-	}
-	
-	public function create(){
-	
-	$args = func_get_args();
-	$content = (isset($args[1]) ? $args[1] : "");
-	$attributes = (isset($args[2]) ? $args[2] : array());
-	$element = $this->createElement($args[0], $content);
-	
-	foreach($attributes as $attName => $attValue){
-	$element->setAttribute($attName, $attValue);
-	}
-	$this->appendChild($element);
-	
-	return $element;
-	}
-	
-	public function button(){
-	$temp= $this->createElement('input');
-	$temp->setAttribute('type','button');
-	return $temp;
-	}
-	}								
+function DECtoDMS($dec)
+{
+
+// Converts decimal longitude / latitude to DMS
+// ( Degrees / minutes / seconds ) 
+
+// This is the piece of code which may appear to 
+// be inefficient, but to avoid issues with floating
+// point math we extract the integer part and the float
+// part by using a string function.
+
+$vars = explode(".",$dec);
+$deg = $vars[0];
+$tempma = "0.".$vars[1];
+
+$tempma = $tempma * 3600;
+$min = floor($tempma / 60);
+$sec = $tempma - ($min*60);
+
+return array("deg"=>$deg,"min"=>$min,"sec"=>$sec);
+}
+
+function array_walk_values($array, $function){
+/* will return an array where a function that accepts a single parameter has been applied
+it's practically a simplification of array_walk. Note that it returns a value!*/
+
+$returnArray = array();
+foreach($array as $index => $value){
+$returnArray[$index] = $function($value);
+}	
+
+return $returnArray;
+}
+
+function array_choose_columns($array, $columns, $remove = FALSE){
+/* will take a rectangular array and choose or remove certain columns.
+array: the array to choose from
+columns: an array that contains all the columns
+remove: a boolean that tells whether the columns given in the parameter "columns" should be selected or removed from the array. If TRUE, all columns EXCEPT the given columns are chosen.
+*/
+$resultArray = array();
+foreach($array as $row){
+$rowToAdd = array();
+foreach($row as $key => $value){
+$inArray = in_array($key, $columns);
+if(($inArray && !$remove) || (!$inArray && $remove)){
+$rowToAdd[$key] = $value;
+}
+
+}
+$resultArray[] = $rowToAdd;
+}
+
+return $resultArray;
+}
+
+function generateRandomString($length = 10) {
+$characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+$charactersLength = strlen($characters);
+$randomString = '';
+for ($i = 0; $i < $length; $i++) {
+$randomString .= $characters[rand(0, $charactersLength - 1)];
+}
+return $randomString;
+}
+
+function echo_tag(){
+
+$tagArray = func_get_args();
+$returnString = "";
+
+foreach($tagArray as $tag){
+$returnString .= "<" . $tag . ">";
+}
+echo $returnString;
+
+}
+
+function extract_request($translationArray = array(), $prefix = "req_"){
+global $_REQUEST;
+$returnArray = array();
+
+$newTranslationArray = array();
+foreach($translationArray as $key => $value){
+if(gettype($key) == "integer"){
+$newTranslationArray[$value] = $value;
+}
+else {
+$newTranslationArray[$key] = $value;
+}
+}
+$translationArray = $newTranslationArray;
+
+foreach($_REQUEST as $key => $value){
+if(isset($translationArray[$key])){
+$varName = $translationArray[$key];
+}
+else {
+$varName = $prefix . $key;
+}
+$returnArray[$varName] = $value;
+}
+foreach($translationArray as $key => $value){
+if(!isset($returnArray[$value])){
+$returnArray[$value] = FALSE;
+}
+}
+
+return $returnArray;
+
+}
+
+function add_hidden_fields($array){
+
+/* will return hidden fields. The array has to have the names given as array-keys and the values given as array-values */
+$output = "";
+foreach($array as $name => $value){
+$output .= qtag("hidden", $value, $name);
+}
+return $output;
+}
+
+function array_orderby(){
+/* Will sort a 2d-array according to own rules
+Pass the array, followed by the column names and sort flags
+$sorted = array_orderby($data, 'volume', SORT_DESC, 'edition', SORT_ASC);
+*/
+
+$args = func_get_args();
+$data = array_shift($args);
+foreach ($args as $n => $field) {
+if (is_string($field)) {
+$tmp = array();
+foreach ($data as $key => $row)
+$tmp[$key] = $row[$field];
+$args[$n] = $tmp;
+}
+}
+$args[] = &$data;
+call_user_func_array('array_multisort', $args);
+return array_pop($args);
+}
+
+function tag($tagName, $content = "", $attributes = array(), $id = ""){
+
+/* args: string $tagName, [string $content, array $attributes OR string $class]
+
+*/
+/* these elements don't need to be closed*/
+$void_elements = array("area","base","br","col","command","embed","hr","img","input","link","meta","param","source");
+/* these elements will be included in case no attribute-array was given*/
+
+$close = substr($tagName, 0, 1) == '/';
+
+$output = '<' . $tagName;
+if(!$close){
+$atts = array();
+if(gettype($attributes) == "string"){
+$atts["class"] = $attributes;
+if($id != ""){
+$atts["id"] = $id;
+}
+}
+elseif(gettype($attributes) == "array" && count($attributes) > 0){
+$atts = $attributes;
+}
+
+foreach($atts as $att => $attVal){
+if(is_int($att)){
+$output .= ' ' . $attVal;
+}
+else {
+$output .= ' ' . $att . '="' . $attVal . '"';
+}
+}
+$output .= '>';
+
+if(!in_array($tagName, $void_elements)){
+$output .= $content . '</' . $tagName . '>';
+}
+}
+
+return $output;
+}
+
+function qtag(){
+/* will create a html-tag and chose from a set of standard variables
+// argument 1 has to be the type, the rest of the arguments will be interpreted according to the standard
+specified in the switch-case
+*/
+$maxNumberOfArgs = 10;
+
+$args =  func_get_args();
+$arguments = $args;
+$args = array(); // we want to preserve $args, but as an array with exactly $maxNumberOfArgs arguments
+/* creates a number of variables called arg1, arg2, ..., arg9 (if $maxNumberOfArgs = 10)*/
+for($i = 0; $i < $maxNumberOfArgs ; $i++){
+$argname = "arg" . $i;
+$$argname = array_shift($arguments);
+$$argname = (is_null($$argname) ? FALSE : $$argname);
+$args[] = $$argname;
+}
+$pseudoTag = ($arg0 ? $arg0 : "");
+$tagName = $pseudoTag;
+$atts = array();
+$content = "";
+$additionalText = "";
+
+switch($pseudoTag){
+case "textinput":
+$tagName = "input";
+$atts["type"] = "text";
+if($arg1){$atts["name"] = $arg1;}
+if($arg2){$atts["placeholder"] = $arg2;}
+if($arg3){$atts["class"] = $arg3;}
+if($arg4){$atts["value"] = $arg4;}
+if($arg5){$atts["id"] = $arg5;
+if($arg6){
+$additionalText = tag("label", array("for" => $arg4), $arg5);
+}
+}
+break;
+
+case "meta":
+if($arg1){
+$atts = $arg1;
+}
+else {
+$atts = array("http-equiv" => "Content-Type", "content" => "text/html; charset=UTF-8");
+}
+break;
+
+case "hidden":
+$tagName = "input";
+$atts[] = "hidden";
+if($arg1){$atts["value"] = $arg1;}
+if($arg2){$atts["name"] = $arg2;}
+if($arg3){$atts["id"] = $arg3;}
+
+break;
+
+case "submit":
+$tagName = "input";
+$atts["type"] = "submit";
+if($arg1){$atts["value"] = $arg1;}
+break;
+
+case "checkbox":
+$tagName = "input";
+$atts["type"] = "checkbox";
+if($arg1){$atts["name"] = $arg1 . '[]';} //should be serealized
+if($arg2){$atts["value"] = $arg2;}
+if($arg3){$atts[] = "checked";}
+
+break;
+
+case "div":
+if($arg1){$content = $arg1;}
+if($arg2){$atts["class"] = $arg2;}
+if($arg3){$atts["id"] = $arg3;}
+break;
+
+case "nav":
+$nav_args = array_slice($args, 1);
+$navBarOutput = create_bootstrap_navbar($nav_args);
+$content = $navBarOutput["content"];
+$atts = $navBarOutput["attributes"];
+break;
+
+case "a":
+if($arg1){$content = $arg1;}
+if($arg2){$atts["href"] = $arg2;}
+if($arg3){$atts["class"] = $arg3;}
+if($arg4){$atts["id"] = $arg4;}			
+break;
+
+case "uicon":
+$tagName = "span";
+$atts["class"] = "ui-icon ui-icon-" . $arg1;
+if($arg2){$atts["id"] = $arg2;}
+
+break;
+
+case "fa": //font-awesome
+$tagName = "i";
+$atts["class"] = "fa fa-" . $arg1;
+if($arg2){$atts["class"] .= " fa-" . $arg2;}  //size
+if($arg3){$atts["id"] = $arg3;}
+break;
+
+case "tabs":
+$tab_args = array_slice($args, 1);
+$tabOutput = create_bootstrap_tabs($tab_args);
+$tagName = "div";
+$content = $tabOutput["content"];
+$atts = $tabOutput["attributes"];
+
+default:
+if($pseudoTag == ""){
+return "ERROR: You must at least provide ONE argument to the function qtag()";
+}
+else {
+if($arg1){$content = $arg1;}
+if($arg2){$atts["class"] = $arg2;}
+if($arg3){$atts["id"] = $arg3;}
+
+}
+break;
+
+}
+return tag($tagName, $content, $atts) . $additionalText;
+
+}
+
+function create_bootstrap_navbar($nav_args){
+/* will return an array with a the matching arguments for a bootstrap-navbar
+the incoming arguments should be given as following
+0: (string) type of navbar. Possible types: "" (for default), fixed (for fixed header)
+1: (array) links: in the form of "Name to Show" => "link to lead to"
+If a menu-item should have a dropdown instead, build a recursive array, e.g. array("Homepage" => "index.html", "Topics" => array("Cars" => "cars.html", "Horses" => "horses.html"), "About me" => "about.html")
+If your navbar should contain a left and right menu, the link-array should contain exactly two arrays with the keys given as LEFT and RIGHT
+2: (string) id of the navbar
+3: (array) header of the site given as a double
+*/
+$type = $nav_args[0];
+$links = $nav_args[1];
+$id = $nav_args[2];
+$headerArray = $nav_args[3];
+$attributes = array("class" => "navbar");
+if($id){$attributes["id"] = $id;}
+
+switch($type){
+case "fixed":
+$attributes["class"] .= " navbar-default navbar-fixed-top";
+break;
+
+default:
+$attributes["class"] .= " navbar-default";
+break;
+}
+
+$header = "";
+if($headerArray){
+$displayName = array_keys($headerArray);
+$displayName = $displayName[0];
+$link = $headerArray[$displayName];
+$header .= tag("a", $displayName, array("href" => $link, "class" => "navbar-brand"));
+}
+$linkContent = array("LEFT" => "", "RIGHT" => "");
+if(!(count($links) == 2 && isset($links["LEFT"]) && isset($links["RIGHT"]))){			
+$links = array("LEFT" => $links, "RIGHT" => array());
+}
+
+foreach($links as $side => $linkList){
+foreach($linkList as $showName => $link){
+if(gettype($link) == "array"){
+$dd_preText = tag("a", $showName . qtag("span", "" , "caret"), array("class" => "dropdown-toggle", "data-toggle"=> "dropdown", "href" => "#"));
+$dd_menu = "";
+foreach($link as $ddShowName => $dropdownListLink){
+$a = qtag("a", $ddShowName, $dropdownListLink);
+$l = tag("li", $a);
+$dd_menu .= $l;
+}
+$dd_list = qtag("ul", $dd_menu ,"dropdown-menu");
+$l = tag("li", $dd_preText . $dd_list, "dropdown");
+$linkContent[$side] .= $l;
+}
+else {
+$a = qtag("a", $showName, $link);
+$l = tag("li", $a);
+$linkContent[$side] .= $l;
+}
+}
+}
+
+
+$navbarContent = qtag("ul", $linkContent["LEFT"] , "nav navbar-nav");
+if($linkContent["RIGHT"] != ""){
+$navbarContent .= qtag("ul", $linkContent["RIGHT"], "nav navbar-nav navbar-right");
+} 
+$div0_1 = qtag("div", $header, "navbar-header");
+$div0_2 = qtag("div", $navbarContent);
+$div0 = qtag("div", $div0_1 . $div0_2, "container-fluid");
+$content = $div0;
+$resultArray = array("content" => $content, "attributes" => $attributes);
+return $resultArray;
+
+
+}
+
+function create_bootstrap_tabs($tab_args){
+
+$type = $tab_args[0]; // yet unused
+$tabContent = $tab_args[1]; 
+$id = $tab_args[2];
+$attributes = array("class" => "container");
+if($id){$attributes["id"] = $id;} 
+
+list($content, $ul, $contentDiv) = array_fill(0,20,"");
+$i = 0;
+$firstElement = get_element($tabContent);
+foreach($tabContent as $showName => $text){
+$i++;
+$tab_id = "tab_id_" . $i;
+$liAtts = array();
+$contentElementAtts = array("id" => $tab_id, "class" => "tab-pane fade");
+if($showName == $firstElement){
+$liAtts["class"] = "active";
+$contentElementAtts["class"] .= " in active";
+}
+$li = tag("a", $showName, array("data-toggle" => "tab", "href" => "#" . $tab_id));
+$ul .= tag("li", $li, $liAtts);
+
+$contentDiv .= tag("div", $text, $contentElementAtts);
+}
+$content .= qtag("ul", $ul, "nav nav-tabs");
+
+$content .= qtag("div", $contentDiv, "tab-content");
+
+$resultArray = array("content" => $content, "attributes" => $attributes);
+return $resultArray;
+}
+
+function get_element($array, $type = "index", $number = 0){
+/* will return an element of an array adressed by number instead of key*/
+$returnObject = "";
+
+if($type == "index"){
+$array_keys = array_keys($array);
+$returnObject = $array_keys[$number];
+}
+elseif($type = "key") {
+$array_values = array_values($array);
+$returnObject = $array_values[$number];
+}
+
+return $returnObject;
+}							
+
+
+class HTML extends DOMDocument{
+function __construct(){
+parent::__construct('1.0','iso-8859-1' );
+$this->formatOutput = true;
+}
+
+public  function saveHTML(){
+return  html_entity_decode(parent::saveHTML());
+}
+
+public function create(){
+
+$args = func_get_args();
+$content = (isset($args[1]) ? $args[1] : "");
+$attributes = (isset($args[2]) ? $args[2] : array());
+$element = $this->createElement($args[0], $content);
+
+foreach($attributes as $attName => $attValue){
+$element->setAttribute($attName, $attValue);
+}
+$this->appendChild($element);
+
+return $element;
+}
+
+public function button(){
+$temp= $this->createElement('input');
+$temp->setAttribute('type','button');
+return $temp;
+}
+}								
