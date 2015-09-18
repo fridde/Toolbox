@@ -3430,6 +3430,7 @@ function qtag(){
 		$tagName = "div";
 		$content = $tabOutput["content"];
 		$atts = $tabOutput["attributes"];
+		break;
 
 		default:
 		if($pseudoTag == ""){
