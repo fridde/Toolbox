@@ -3384,7 +3384,8 @@ function qtag(){
 		case "checkbox":
 		$tagName = "input";
 		$atts["type"] = "checkbox";
-		if($arg1){$atts["name"] = $arg1 . '[]';} //should be serealized
+		if($arg1){
+			$atts["name"] = $arg1 . '[]';} //should be serealized
 		if($arg2){$atts["value"] = $arg2;}
 		if($arg3){$atts[] = "checked";}
 
