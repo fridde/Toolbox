@@ -7,7 +7,7 @@ function inc($inclusionString, $debug = FALSE, $return = FALSE){
 	$inclusionArray = array_map("trim", $inclusionArray);
 
 	/* a string to simplify finding a matching key */
-	$translationString = "000:fnc ; 001:sql ; 002:pdown ; 101:cal ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
+	$translationString = "000:fnc ; 001:sql ; 002:pdown ; 101:cal ; 102:test ; 200:jquery ; 202:DTjQ ; 204:DTTT ; 205:jqueryUIjs ;
 	206:DTfH ; 207:bootjs ; 302:DTin ; 303:init ; 304:star ; 305:jcount ; 306:user_init ; 400:jqueryUIcss ; 401:DTcss ; 402:DTfHcss ; 404:DTTTcss ; 405:bootcss ;
 	406:boottheme ; 407:fAwe ; 503:css ; 504:starCSS";
 	$translationArray = array();
@@ -24,6 +24,7 @@ function inc($inclusionString, $debug = FALSE, $return = FALSE){
 		/* local php files */
 		"100" => "inc/misc_functions",
 		"101" => "inc/calendar_functions",
+		"102" => "testing/testing_functions",
 		/* remote javascript files hosted by other servers */
 		"200" => "//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min",
 		"201" => "",
@@ -58,7 +59,7 @@ function inc($inclusionString, $debug = FALSE, $return = FALSE){
 		"504" => "/inc/bootstrap-star-rating/css/star-rating.min"
 	);
 
-	
+
 	$subdir = get_current_subfolder();
 	$alreadyIncluded = array();
 
