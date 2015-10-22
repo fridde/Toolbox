@@ -208,7 +208,7 @@ function filter_words($wordArray, $rules) {
 			break;
 		}
 	}
-	//echo print_r($wordArray) . "<br>";
+
 	return $wordArray;
 }
 
