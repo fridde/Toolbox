@@ -1468,32 +1468,7 @@ class Helper {
 		return $newArray;
 	}
 
-	/*
-	/* ###################################################
-	/* find_most_similar
-	/* ###################################################
-	*/
-	public static function find_most_similar($needle, $haystack, $alwaysFindSomething = TRUE) {
 
-		if ($alwaysFindSomething) {
-			$bestWord = reset($haystack);
-			$shortestDistance = levenshtein($needle, $bestWord);
-		}
-		else {
-			$bestWord = "";
-			$shortestDistance = 255;
-		}
-
-		// echo print_r($haystack);
-		foreach ($haystack as $key => $value) {
-			$thisDistance = levenshtein($needle, $value);
-			if ($thisDistance < $shortestDistance) {
-				$bestWord = $value;
-				$shortestDistance = $thisDistance;
-			}
-		}
-		return $bestWord;
-	}
 
 	/*
 	/* ###################################################
@@ -2941,6 +2916,33 @@ public static function create_relevant_day_array($dayArray) {
 
 }
 
+/*
+/* ###################################################
+/* find_most_similar
+/* ###################################################
+*/
+function find_most_similar($needle, $haystack, $alwaysFindSomething = TRUE) {
+
+	if ($alwaysFindSomething) {
+		$bestWord = reset($haystack);
+		$shortestDistance = levenshtein($needle, $bestWord);
+	}
+	else {
+		$bestWord = "";
+		$shortestDistance = 255;
+	}
+
+	// echo print_r($haystack);
+	foreach ($haystack as $key => $value) {
+		$thisDistance = levenshtein($needle, $value);
+		if ($thisDistance < $shortestDistance) {
+			$bestWord = $value;
+			$shortestDistance = $thisDistance;
+		}
+	}
+	return $bestWord;
+}
+
 function logg($data, $infoText = "", $filename = "logg.txt") {
 
 	$string = "\n--------------------------------\n";
@@ -3386,224 +3388,224 @@ function qtag(){
 		$atts["type"] = "checkbox";
 		if($arg1){
 			$atts["name"] = $arg1 . '[]';} //should be serealized
-		if($arg2){$atts["value"] = $arg2;}
-		if($arg3){$atts[] = "checked";}
+			if($arg2){$atts["value"] = $arg2;}
+			if($arg3){$atts[] = "checked";}
 
-		break;
+			break;
 
-		case "div":
-		if($arg1){$content = $arg1;}
-		if($arg2){$atts["class"] = $arg2;}
-		if($arg3){$atts["id"] = $arg3;}
-		break;
-
-		case "nav":
-		$nav_args = array_slice($args, 1);
-		$navBarOutput = create_bootstrap_navbar($nav_args);
-		$content = $navBarOutput["content"];
-		$atts = $navBarOutput["attributes"];
-		break;
-
-		case "a":
-		if($arg1){$content = $arg1;}
-		if($arg2){$atts["href"] = $arg2;}
-		if($arg3){$atts["class"] = $arg3;}
-		if($arg4){$atts["id"] = $arg4;}
-		break;
-
-		case "uicon":
-		$tagName = "span";
-		$atts["class"] = "ui-icon ui-icon-" . $arg1;
-		if($arg2){$atts["id"] = $arg2;}
-
-		break;
-
-		case "fa": //font-awesome
-		$tagName = "i";
-		$atts["class"] = "fa fa-" . $arg1;
-		if($arg2){$atts["class"] .= " fa-" . $arg2;}  //size
-		if($arg3){$atts["id"] = $arg3;}
-		break;
-
-		case "tabs":
-		$tab_args = array_slice($args, 1);
-		$tabOutput = create_bootstrap_tabs($tab_args);
-		$tagName = "div";
-		$content = $tabOutput["content"];
-		$atts = $tabOutput["attributes"];
-		break;
-
-		default:
-		if($pseudoTag == ""){
-			return "ERROR: You must at least provide ONE argument to the function qtag()";
-		}
-		else {
+			case "div":
 			if($arg1){$content = $arg1;}
 			if($arg2){$atts["class"] = $arg2;}
 			if($arg3){$atts["id"] = $arg3;}
+			break;
 
-		}
-		break;
+			case "nav":
+			$nav_args = array_slice($args, 1);
+			$navBarOutput = create_bootstrap_navbar($nav_args);
+			$content = $navBarOutput["content"];
+			$atts = $navBarOutput["attributes"];
+			break;
 
-	}
-	return tag($tagName, $content, $atts) . $additionalText;
+			case "a":
+			if($arg1){$content = $arg1;}
+			if($arg2){$atts["href"] = $arg2;}
+			if($arg3){$atts["class"] = $arg3;}
+			if($arg4){$atts["id"] = $arg4;}
+			break;
 
-}
+			case "uicon":
+			$tagName = "span";
+			$atts["class"] = "ui-icon ui-icon-" . $arg1;
+			if($arg2){$atts["id"] = $arg2;}
 
-function create_bootstrap_navbar($nav_args){
-	/* will return an array with a the matching arguments for a bootstrap-navbar
-	the incoming arguments should be given as following
-	0: (string) type of navbar. Possible types: "" (for default), fixed (for fixed header)
-	1: (array) links: in the form of "Name to Show" => "link to lead to"
-	If a menu-item should have a dropdown instead, build a recursive array, e.g. array("Homepage" => "index.html", "Topics" => array("Cars" => "cars.html", "Horses" => "horses.html"), "About me" => "about.html")
-	If your navbar should contain a left and right menu, the link-array should contain exactly two arrays with the keys given as LEFT and RIGHT
-	2: (string) id of the navbar
-	3: (array) header of the site given as a double
-	*/
-	$type = $nav_args[0];
-	$links = $nav_args[1];
-	$id = $nav_args[2];
-	$headerArray = $nav_args[3];
-	$attributes = array("class" => "navbar");
-	if($id){$attributes["id"] = $id;}
+			break;
 
-	switch($type){
-		case "fixed":
-		$attributes["class"] .= " navbar-default navbar-fixed-top";
-		break;
+			case "fa": //font-awesome
+			$tagName = "i";
+			$atts["class"] = "fa fa-" . $arg1;
+			if($arg2){$atts["class"] .= " fa-" . $arg2;}  //size
+			if($arg3){$atts["id"] = $arg3;}
+			break;
 
-		default:
-		$attributes["class"] .= " navbar-default";
-		break;
-	}
+			case "tabs":
+			$tab_args = array_slice($args, 1);
+			$tabOutput = create_bootstrap_tabs($tab_args);
+			$tagName = "div";
+			$content = $tabOutput["content"];
+			$atts = $tabOutput["attributes"];
+			break;
 
-	$header = "";
-	if($headerArray){
-		$displayName = array_keys($headerArray);
-		$displayName = $displayName[0];
-		$link = $headerArray[$displayName];
-		$header .= tag("a", $displayName, array("href" => $link, "class" => "navbar-brand"));
-	}
-	$linkContent = array("LEFT" => "", "RIGHT" => "");
-	if(!(count($links) == 2 && isset($links["LEFT"]) && isset($links["RIGHT"]))){
-		$links = array("LEFT" => $links, "RIGHT" => array());
-	}
-
-	foreach($links as $side => $linkList){
-		foreach($linkList as $showName => $link){
-			if(gettype($link) == "array"){
-				$dd_preText = tag("a", $showName . qtag("span", "" , "caret"), array("class" => "dropdown-toggle", "data-toggle"=> "dropdown", "href" => "#"));
-				$dd_menu = "";
-				foreach($link as $ddShowName => $dropdownListLink){
-					$a = qtag("a", $ddShowName, $dropdownListLink);
-					$l = tag("li", $a);
-					$dd_menu .= $l;
-				}
-				$dd_list = qtag("ul", $dd_menu ,"dropdown-menu");
-				$l = tag("li", $dd_preText . $dd_list, "dropdown");
-				$linkContent[$side] .= $l;
+			default:
+			if($pseudoTag == ""){
+				return "ERROR: You must at least provide ONE argument to the function qtag()";
 			}
 			else {
-				$a = qtag("a", $showName, $link);
-				$l = tag("li", $a);
-				$linkContent[$side] .= $l;
+				if($arg1){$content = $arg1;}
+				if($arg2){$atts["class"] = $arg2;}
+				if($arg3){$atts["id"] = $arg3;}
+
+			}
+			break;
+
+		}
+		return tag($tagName, $content, $atts) . $additionalText;
+
+	}
+
+	function create_bootstrap_navbar($nav_args){
+		/* will return an array with a the matching arguments for a bootstrap-navbar
+		the incoming arguments should be given as following
+		0: (string) type of navbar. Possible types: "" (for default), fixed (for fixed header)
+		1: (array) links: in the form of "Name to Show" => "link to lead to"
+		If a menu-item should have a dropdown instead, build a recursive array, e.g. array("Homepage" => "index.html", "Topics" => array("Cars" => "cars.html", "Horses" => "horses.html"), "About me" => "about.html")
+		If your navbar should contain a left and right menu, the link-array should contain exactly two arrays with the keys given as LEFT and RIGHT
+		2: (string) id of the navbar
+		3: (array) header of the site given as a double
+		*/
+		$type = $nav_args[0];
+		$links = $nav_args[1];
+		$id = $nav_args[2];
+		$headerArray = $nav_args[3];
+		$attributes = array("class" => "navbar");
+		if($id){$attributes["id"] = $id;}
+
+		switch($type){
+			case "fixed":
+			$attributes["class"] .= " navbar-default navbar-fixed-top";
+			break;
+
+			default:
+			$attributes["class"] .= " navbar-default";
+			break;
+		}
+
+		$header = "";
+		if($headerArray){
+			$displayName = array_keys($headerArray);
+			$displayName = $displayName[0];
+			$link = $headerArray[$displayName];
+			$header .= tag("a", $displayName, array("href" => $link, "class" => "navbar-brand"));
+		}
+		$linkContent = array("LEFT" => "", "RIGHT" => "");
+		if(!(count($links) == 2 && isset($links["LEFT"]) && isset($links["RIGHT"]))){
+			$links = array("LEFT" => $links, "RIGHT" => array());
+		}
+
+		foreach($links as $side => $linkList){
+			foreach($linkList as $showName => $link){
+				if(gettype($link) == "array"){
+					$dd_preText = tag("a", $showName . qtag("span", "" , "caret"), array("class" => "dropdown-toggle", "data-toggle"=> "dropdown", "href" => "#"));
+					$dd_menu = "";
+					foreach($link as $ddShowName => $dropdownListLink){
+						$a = qtag("a", $ddShowName, $dropdownListLink);
+						$l = tag("li", $a);
+						$dd_menu .= $l;
+					}
+					$dd_list = qtag("ul", $dd_menu ,"dropdown-menu");
+					$l = tag("li", $dd_preText . $dd_list, "dropdown");
+					$linkContent[$side] .= $l;
+				}
+				else {
+					$a = qtag("a", $showName, $link);
+					$l = tag("li", $a);
+					$linkContent[$side] .= $l;
+				}
 			}
 		}
-	}
 
 
-	$navbarContent = qtag("ul", $linkContent["LEFT"] , "nav navbar-nav");
-	if($linkContent["RIGHT"] != ""){
-		$navbarContent .= qtag("ul", $linkContent["RIGHT"], "nav navbar-nav navbar-right");
-	}
-	$div0_1 = qtag("div", $header, "navbar-header");
-	$div0_2 = qtag("div", $navbarContent);
-	$div0 = qtag("div", $div0_1 . $div0_2, "container-fluid");
-	$content = $div0;
-	$resultArray = array("content" => $content, "attributes" => $attributes);
-	return $resultArray;
-
-
-}
-
-function create_bootstrap_tabs($tab_args){
-
-	$type = $tab_args[0]; // yet unused
-	$tabContent = $tab_args[1];
-	$id = $tab_args[2];
-	$attributes = array("class" => "container");
-	if($id){$attributes["id"] = $id;}
-
-	list($content, $ul, $contentDiv) = array_fill(0,20,"");
-	$i = 0;
-	$firstElement = get_element($tabContent);
-	foreach($tabContent as $showName => $text){
-		$i++;
-		$tab_id = "tab_id_" . $i;
-		$liAtts = array();
-		$contentElementAtts = array("id" => $tab_id, "class" => "tab-pane fade");
-		if($showName == $firstElement){
-			$liAtts["class"] = "active";
-			$contentElementAtts["class"] .= " in active";
+		$navbarContent = qtag("ul", $linkContent["LEFT"] , "nav navbar-nav");
+		if($linkContent["RIGHT"] != ""){
+			$navbarContent .= qtag("ul", $linkContent["RIGHT"], "nav navbar-nav navbar-right");
 		}
-		$li = tag("a", $showName, array("data-toggle" => "tab", "href" => "#" . $tab_id));
-		$ul .= tag("li", $li, $liAtts);
+		$div0_1 = qtag("div", $header, "navbar-header");
+		$div0_2 = qtag("div", $navbarContent);
+		$div0 = qtag("div", $div0_1 . $div0_2, "container-fluid");
+		$content = $div0;
+		$resultArray = array("content" => $content, "attributes" => $attributes);
+		return $resultArray;
 
-		$contentDiv .= tag("div", $text, $contentElementAtts);
-	}
-	$content .= qtag("ul", $ul, "nav nav-tabs");
 
-	$content .= qtag("div", $contentDiv, "tab-content");
-
-	$resultArray = array("content" => $content, "attributes" => $attributes);
-	return $resultArray;
-}
-
-function get_element($array, $type = "index", $number = 0){
-	/* will return an element of an array adressed by number instead of key*/
-	$returnObject = "";
-
-	if($type == "index"){
-		$array_keys = array_keys($array);
-		$returnObject = $array_keys[$number];
-	}
-	elseif($type = "key") {
-		$array_values = array_values($array);
-		$returnObject = $array_values[$number];
 	}
 
-	return $returnObject;
-}
+	function create_bootstrap_tabs($tab_args){
 
+		$type = $tab_args[0]; // yet unused
+		$tabContent = $tab_args[1];
+		$id = $tab_args[2];
+		$attributes = array("class" => "container");
+		if($id){$attributes["id"] = $id;}
 
-class HTML extends DOMDocument{
-	function __construct(){
-		parent::__construct('1.0','iso-8859-1' );
-		$this->formatOutput = true;
-	}
+		list($content, $ul, $contentDiv) = array_fill(0,20,"");
+		$i = 0;
+		$firstElement = get_element($tabContent);
+		foreach($tabContent as $showName => $text){
+			$i++;
+			$tab_id = "tab_id_" . $i;
+			$liAtts = array();
+			$contentElementAtts = array("id" => $tab_id, "class" => "tab-pane fade");
+			if($showName == $firstElement){
+				$liAtts["class"] = "active";
+				$contentElementAtts["class"] .= " in active";
+			}
+			$li = tag("a", $showName, array("data-toggle" => "tab", "href" => "#" . $tab_id));
+			$ul .= tag("li", $li, $liAtts);
 
-	public  function saveHTML(){
-		return  html_entity_decode(parent::saveHTML());
-	}
-
-	public function create(){
-
-		$args = func_get_args();
-		$content = (isset($args[1]) ? $args[1] : "");
-		$attributes = (isset($args[2]) ? $args[2] : array());
-		$element = $this->createElement($args[0], $content);
-
-		foreach($attributes as $attName => $attValue){
-			$element->setAttribute($attName, $attValue);
+			$contentDiv .= tag("div", $text, $contentElementAtts);
 		}
-		$this->appendChild($element);
+		$content .= qtag("ul", $ul, "nav nav-tabs");
 
-		return $element;
+		$content .= qtag("div", $contentDiv, "tab-content");
+
+		$resultArray = array("content" => $content, "attributes" => $attributes);
+		return $resultArray;
 	}
 
-	public function button(){
-		$temp= $this->createElement('input');
-		$temp->setAttribute('type','button');
-		return $temp;
+	function get_element($array, $type = "index", $number = 0){
+		/* will return an element of an array adressed by number instead of key*/
+		$returnObject = "";
+
+		if($type == "index"){
+			$array_keys = array_keys($array);
+			$returnObject = $array_keys[$number];
+		}
+		elseif($type = "key") {
+			$array_values = array_values($array);
+			$returnObject = $array_values[$number];
+		}
+
+		return $returnObject;
 	}
-}
+
+
+	class HTML extends DOMDocument{
+		function __construct(){
+			parent::__construct('1.0','iso-8859-1' );
+			$this->formatOutput = true;
+		}
+
+		public  function saveHTML(){
+			return  html_entity_decode(parent::saveHTML());
+		}
+
+		public function create(){
+
+			$args = func_get_args();
+			$content = (isset($args[1]) ? $args[1] : "");
+			$attributes = (isset($args[2]) ? $args[2] : array());
+			$element = $this->createElement($args[0], $content);
+
+			foreach($attributes as $attName => $attValue){
+				$element->setAttribute($attName, $attValue);
+			}
+			$this->appendChild($element);
+
+			return $element;
+		}
+
+		public function button(){
+			$temp= $this->createElement('input');
+			$temp->setAttribute('type','button');
+			return $temp;
+		}
+	}
