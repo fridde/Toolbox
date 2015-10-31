@@ -2925,19 +2925,19 @@ function find_most_similar($needle, $haystack, $alwaysFindSomething = TRUE) {
 
 	if ($alwaysFindSomething) {
 		$bestWord = reset($haystack);
-		$shortestDistance = levenshtein($needle, $bestWord);
+		similar_text($needle, $bestWord, $bestPercentage);
 	}
 	else {
 		$bestWord = "";
-		$shortestDistance = 255;
+		$bestPercentage = 0;
 	}
 
-	// echo print_r($haystack);
 	foreach ($haystack as $key => $value) {
-		$thisDistance = levenshtein($needle, $value);
-		if ($thisDistance < $shortestDistance) {
+		similar_text($needle, $value, $thisPercentage);
+
+		if ($thisPercentage > $bestPercentage) {
 			$bestWord = $value;
-			$shortestDistance = $thisDistance;
+			$bestPercentage = $thisPercentage;
 		}
 	}
 	return $bestWord;
