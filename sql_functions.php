@@ -45,7 +45,7 @@
 		return $conn;
 	}
 
-	function sql_get_highest_id($sqlTable, $idHeader = "id", $debug = "FALSE") {
+	function sql_get_highest_id($sqlTable, $idHeader = "id", $debug = FALSE) {
 
 		$query = "SELECT " . $idHeader . " FROM " . $sqlTable;
 		$query .= " ORDER BY " . $idHeader . " DESC LIMIT 1;";
