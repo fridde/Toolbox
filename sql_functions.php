@@ -1,13 +1,13 @@
 <?php
-
+	
 	/*
 		* Contains custom SQL-functions that use PDO
 		* assumes that a config.ini -file exists matching the template given in this folder
-
+		
 	*/
-
+	
 	function get_conn_details($ini_file = "config.ini"){
-
+		
 		if(file_exists($ini_file)){
 			$ini_array = parse_ini_file($ini_file, TRUE);
 			$cD = $ini_array["Connection_Details"];
@@ -20,21 +20,21 @@
 			return $errorText;
 		}
 	}
-
-
+	
+	
 	function sql_connect($nonStandardDB = FALSE) {
 		/* expects an array that contains the following values (in that order)
 			* array($db_host, $db_name, db_username, $db_password);    *
 		*/
-
+		
 		if ($nonStandardDB == FALSE) {
-
+			
 			$connectionDetails = get_conn_details();
 			$cd = $connectionDetails; // abbreviation
 			} else {
 			$cd = $nonStandardDB;
 		}
-
+		
 		try {
 			$conn = new PDO("mysql:host=$cd[0];dbname=$cd[1];", $cd[2], $cd[3]);
 			$conn->exec("SET NAMES utf8");
@@ -44,33 +44,33 @@
 		}
 		return $conn;
 	}
-
+	
 	function sql_get_highest_id($sqlTable, $idHeader = "id", $debug = FALSE) {
-
+		
 		$query = "SELECT " . $idHeader . " FROM " . $sqlTable;
 		$query .= " ORDER BY " . $idHeader . " DESC LIMIT 1;";
-
+		
 		$conn = sql_connect();
 		if($debug){echo $query;}
 		$stmt = $conn->prepare($query);
 		$stmt->execute();
-
+		
 		// set the resulting array to associative
 		$queryResult = $stmt->setFetchMode(PDO::FETCH_ASSOC);
-
+		
 		$resultArray = $stmt->fetchAll();
 		$conn = null;
 		return $resultArray[0][$idHeader];
 	}
-
+	
 	function sql_insert_rows($sqlTable, $array, $forceId = FALSE, $maxString = 5000, $debug = FALSE) {
-
+		
 		// sometimes only a single row is given that is not contained in an array
 		$first_element = reset($array);
 		if (is_string($first_element)) {
 			$array = array($array);
 		}
-
+		
 		$sqlHeaders = sql_get_headers($sqlTable);
 		$conn = sql_connect();
 		//echo print_r($array);
@@ -78,12 +78,12 @@
 			echo "Empty array given! <br>";
 			return;
 		}
-
+		
 		$queryStart = "INSERT INTO " . $sqlTable . " (" . implode(" , ", $sqlHeaders) . ") VALUES ";
 		$query = "";
-
+		
 		foreach ($array as $row) {
-
+			
 			$newRow = array();
 			foreach ($sqlHeaders as $sqlHeader) {
 				switch ($sqlHeader) {
@@ -104,14 +104,14 @@
 				}
 			}
 			$newRow = "('" . implode("' , '", $newRow) . "'),";
-
+			
 			$query .= $newRow;
-
+			
 			if (strlen($query) > $maxString) {
 				$totalQuery = $queryStart . rtrim($query, ",") . ";";
 				if($debug){echo $totalQuery;}
 				$conn->exec($totalQuery);
-
+				
 				$query = "";
 			}
 		}
@@ -122,11 +122,11 @@
 			$conn->exec($totalQuery);
 		}
 		$conn = null;
-
+		
 	}
-
+	
 	function sql_select($sqlTable, $criteria = "", $headers = "all", $debug = FALSE) {
-
+		
 		/* criteria can be given in 3 different forms
 			* 1. as a string written in SQL
 			* 2. as a single array with only one key and one value, written as array("header" => "value").
@@ -138,7 +138,7 @@
 			*          Example: array("AND", array("header1" => "value1", "header2" => "value2", etc)) becomes
 			*          "WHERE header1 = 'value1' AND header2 = "value2" AND ...
 		*  */
-
+		
 		$equalSign = "=";
 		$notEqualSign = "<>";
 		$query = "SELECT ";
@@ -149,7 +149,7 @@
 			$query .= " ";
 		}
 		$query .= "FROM " . $sqlTable;
-
+		
 		if (is_array($criteria)) {
 			if (count($criteria) == 2) {
 				if (is_array($criteria[1])) {
@@ -163,14 +163,14 @@
 			} else {
 			$criteriaType = "string";
 		}
-
+		
 		switch ($criteriaType) {
-
+			
 			case "string":
 			// i.e. "WHERE City = Berlin"
 			$criteriaString = $criteria;
 			break;
-
+			
 			case "string_and_array":
 			// i.e. array("AND", array("City" => "Berlin", "Job" => "Carpenter"))
 			$criteriaString = " WHERE ";
@@ -192,7 +192,7 @@
 			}
 			$criteriaString .= implode($glue, $criteriaArray);
 			break;
-
+			
 			case "two_strings":
 			$criteriaString = " WHERE ";
 			$left = $criteria[0];
@@ -205,7 +205,7 @@
 				$criteriaString .= '`' . $left . "` " . $equalSign . " '" . $right . "' ";
 			}
 			break;
-
+			
 			case "atomic_array":
 			$criteriaString = " WHERE ";
 			$left = array_keys($criteria);
@@ -218,33 +218,33 @@
 			else {
 				$criteriaString .= '`' . $left . "` " . $equalSign . " '" . $right . "' ";
 			}
-
+			
 			break;
 		}
-
+		
 		$query .= $criteriaString . " ;";
 		if($debug){echo $query;}
 		$conn = sql_connect();
 		$stmt = $conn->prepare($query);
 		$stmt->execute();
-
+		
 		// set the resulting array to associative
 		$queryResult = $stmt->setFetchMode(PDO::FETCH_ASSOC);
-
+		
 		$resultArray = array();
 		foreach ($stmt->fetchAll() as $row) {
 			$resultArray[] = $row;
 		}
 		$conn = null;
-
+		
 		return $resultArray;
 	}
-
-
+	
+	
 	function sql_update_row($id, $sqlTable, $row, $idHeader = "id", $debug = FALSE) {
-
+		
 		$headers = sql_get_headers($sqlTable);
-
+		
 		$query = "UPDATE " . $sqlTable . ' SET ';
 		$valueArray = array();
 		foreach ($headers as $header) {
@@ -257,104 +257,108 @@
 		if($debug){echo $query;}
 		sql_quick_execute($query);
 	}
-
+	
 	function sql_quick_execute($query) {
-
+		
 		$conn = sql_connect();
 		$stmt = $conn->prepare($query);
 		$stmt->execute();
 		$conn = null;
 	}
-
+	
 	function sql_truncate($sqlTable) {
 		$query = 'TRUNCATE ' . $sqlTable . ' ;';
 		sql_quick_execute($query);
 	}
-
+	
 	function sql_get_headers($sqlTable) {
-
+		
 		$connectionDetails = get_conn_details();
 		$cd = $connectionDetails;
 		$otherDB = array($cd[0], "information_schema", $cd[2], $cd[3]);
-
+		
 		$quote = "'"; // stupid workaround
 		$query = 'SELECT COLUMN_NAME FROM COLUMNS WHERE ';
 		$query .= 'TABLE_NAME = ' . $quote . $sqlTable . $quote . ' ;';
-
+		
 		$conn = sql_connect($otherDB);
 		$stmt = $conn->prepare($query);
 		$stmt->execute();
-
+		
 		// set the resulting array to associative
 		$stmt->setFetchMode(PDO::FETCH_ASSOC);
-
+		
 		$queryResult = $stmt->fetchAll();
-
+		
 		$headers = array();
 		foreach ($queryResult as $row) {
 			$headers[] = $row["COLUMN_NAME"];
 		}
 		$conn = null;
-
+		
 		return $headers;
 	}
-
+	
 	/* Works only for tables with ONE primary key
 	*/
-
+	
 	function sql_delete($sqlTable, $criteria = "", $not = FALSE){
-
-		$idColumnName = get_primary_column_name($sqlTable);
-		//echo $idColumnName . "<br>";
-		$array = sql_select($sqlTable, $criteria, $headers = "all", $not);
-		if(count($array) > 0){
-			$query = 'DELETE FROM ' . $sqlTable . ' WHERE ' ;
-
-			$orArray = array();
-			foreach($array as $row){
-				$orArray[] = $idColumnName . ' = ' . $row[$idColumnName];
+		
+		$query = "";
+		if($criteria == ""){
+			$query .= "TRUNCATE TABLE " . $sqlTable;
+		} 
+		else {
+			$idColumnName = get_primary_column_name($sqlTable);
+			//echo $idColumnName . "<br>";
+			$array = sql_select($sqlTable, $criteria, $headers = "all", $not);
+			if(count($array) > 0){
+				$query .= 'DELETE FROM ' . $sqlTable . ' WHERE ' ;
+				
+				$orArray = array();
+				foreach($array as $row){
+					$orArray[] = $idColumnName . ' = ' . $row[$idColumnName];
+				}
+				
+				$query .= implode(" OR ", $orArray);
+				$query .= ";";
 			}
-
-			$query .= implode(" OR ", $orArray);
-			$query .= ";";
-
-			//echo $query;
-			sql_quick_execute($query);
 		}
+		sql_quick_execute($query);
 	}
-
+	
 	function get_primary_column_name($sqlTable){
-
+		
 		$query = 'SELECT COLUMN_NAME FROM COLUMNS
 		WHERE
 		TABLE_NAME = \'' . $sqlTable . '\' AND COLUMN_KEY = \'PRI\';' ;
-
+		
 		$connectionDetails = get_conn_details();
 		$cd = $connectionDetails;
-
+		
 		$otherDB = array($cd[0], "information_schema", $cd[2], $cd[3]);
-
+		
 		$conn = sql_connect($otherDB);
 		$stmt = $conn->prepare($query);
 		$stmt->execute();
-
+		
 		// set the resulting array to associative
 		$stmt->setFetchMode(PDO::FETCH_ASSOC);
-
+		
 		$queryResult = $stmt->fetchAll();
-
+		
 		$primaryHeader = $queryResult[0]["COLUMN_NAME"];
-
+		
 		$conn = null;
-
+		
 		return $primaryHeader;
-
+		
 	}
-
+	
 	/* will retrieve an id of  */
-
+	
 	function sql_get_id($sqlTable, $criteria, $id_header_name = "id", $not = FALSE, $debug = FALSE){
-
+		
 		$queryResult = sql_select($sqlTable, $criteria, $id_header_name, $not, $debug);
 		if(count($queryResult) == 1){
 			$onlyResult = reset($queryResult);
@@ -363,6 +367,6 @@
 		else {
 			$result = FALSE;
 		}
-
+		
 		return $result;
 	}
