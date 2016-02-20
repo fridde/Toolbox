@@ -622,7 +622,7 @@
 	}
 	
 	function array_to_csv($dataArray, $filePointer = NULL, $delimiter = ',', $enclosure = '"', $encloseAll = TRUE, $nullToMysqlNull = false) {
-		
+		$csvstring = "";
 		if (isset($filePointer)) {
 			$filePointer = fopen($filePointer, "w+");
 		}
