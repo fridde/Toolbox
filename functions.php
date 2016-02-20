@@ -63,17 +63,6 @@
 		return $string;
 	}
 	
-	function convert_date($date) {
-		
-		$year = substr($date, 0, 4);
-		$month = substr($date, 4, 2);
-		$day = substr($date, 6, 2);
-		
-		$date = $year . "-" . $month . "-" . $day;
-		
-		return $date;
-	}
-	
 	function create_htmltable_from_array($array, $id = "sortable", $class = "display stripe") {
 		
 		/* check for emtpy array */
