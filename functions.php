@@ -13,18 +13,6 @@
 		}
 	}
 	
-	function create_download($source, $filename = "export.ris") {
-		
-		$f = fopen('php://memory', 'w+');
-		fwrite($f, $source);
-		fseek($f, 0);
-		
-		header('Content-Type: text/plain');
-		header('Content-Disposition: attachment; filename="' . $filename . '"');
-		// make php send the generated lines to the browser
-		fpassthru($f);
-	}
-	
 	function array_change_col_names($array, $translationArray) {
 		/* takes an array simulating a table in the format
 			* array(
