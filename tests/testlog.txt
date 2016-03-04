@@ -1,0 +1,20 @@
+PHPUnit 3.7.21 by Sebastian Bergmann.
+
+F
+
+Time: 0 seconds, Memory: 1.75Mb
+
+There was 1 failure:
+
+1) WriterTest::test_write_sample_text
+Failed asserting that two strings are equal.
+--- Expected
++++ Actual
+@@ @@
+-'Bla'
++'Some text'
+
+D:\Dropbox\scripts\friddes_php_functions\tests\WriterTest.php:10
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.

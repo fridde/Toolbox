@@ -1,5 +1,362 @@
 <?php
 	
+	namespace Fridde\SQL;
+	/**
+		* SUMMARY OF clean_sql
+		*
+		* DESCRIPTION
+		*
+		* @param TYPE ($string) ARGDESCRIPTION
+		*
+		* @return TYPE NAME DESCRIPTION
+	*/
+	
+	function clean_sql($string)
+	{
+		
+		$search = array("\'");
+		$replace = array("\'\'");
+		
+		$string = str_replace($search, $replace, $string);
+		
+		return $string;
+	}
+	/**
+		* SUMMARY OF transpose
+		*
+		* DESCRIPTION
+		*
+		* @param TYPE ($array) ARGDESCRIPTION
+		*
+		* @return TYPE NAME DESCRIPTION
+	*/
+	function transpose($array)
+	{
+		array_unshift($array, null);
+		return call_user_func_array('array_map', $array);
+	}
+	/**
+		* SUMMARY OF sql_remove_duplicates($sqlTable, $ignoreArray = array
+		*
+		* DESCRIPTION
+		*
+		* @param TYPE ("id")) ARGDESCRIPTION
+		*
+		* @return TYPE NAME DESCRIPTION
+	*/
+	function sql_remove_duplicates($sqlTable, $ignoreArray = array("id"))
+	{
+		
+		$rowsBefore = ORM::for_table($sqlTable) -> count();
+		
+		$headers = Helper::sql_get_columnNames($sqlTable);
+		$headers = array_diff($headers, $ignoreArray);
+		echo print_r($headers) . "<br><br>";
+		$query = " ALTER TABLE " . $sqlTable . " ADD COLUMN tmp_col TEXT(300); ";
+		$query .= ' UPDATE ' . $sqlTable . ' SET tmp_col = concat_ws(",", ' . implode(", ", $headers) . ' ); ';
+		$query .= "CREATE TABLE tmp LIKE " . $sqlTable . " ; ";
+		$query .= " ALTER TABLE tmp ADD UNIQUE (tmp_col(300)) ; ";
+		$query .= "INSERT IGNORE INTO tmp SELECT * FROM " . $sqlTable . " ; ";
+		$query .= "RENAME TABLE " . $sqlTable . " TO deleteme, tmp TO " . $sqlTable . " ; ";
+		$query .= " ALTER TABLE " . $sqlTable . " DROP COLUMN tmp_col ; ";
+		$query .= "DROP TABLE deleteme ;";
+		ORM::for_table($sqlTable) -> raw_execute($query);
+		
+		$rowsAfter = ORM::for_table($sqlTable) -> count();
+		
+		return $rowsBefore - $rowsAfter;
+	}
+	
+	/**
+		* SUMMARY OF sql_convert_dates
+		*
+		* DESCRIPTION
+		*
+		* @param TYPE ($sourceId, $tableName) ARGDESCRIPTION
+		*
+		* @return TYPE NAME DESCRIPTION
+	*/
+	function sql_convert_dates($sourceId, $tableName)
+	{
+		$ORM = ORM::for_table($tableName) -> where("Source_Id", $sourceId) -> find_many();
+		
+		$dateHeaders = array(
+		"Year",
+		"Date",
+		"Actual_Application",
+		"Expected_Approval",
+		"Regulatory_Approval",
+		"Construction_Start",
+		"First_Steam",
+		"Production_Start",
+		"Month",
+		"Startup_Date"
+		);
+		$quartalHeaders = array(
+		"Actual_Application",
+		"Expected_Approval",
+		"Regulatory_Approval",
+		"Construction_Start",
+		"First_Steam",
+		"Production_Start"
+		);
+		
+		// Year (Decimal or integer)
+		// Date (Decimal or integer)
+		// Actual_Application (Q4 2012)
+		// Expected_Approval (Q4 2015 or integer)
+		// Regulatory_Approval (Q4 2015 or integer)
+		// Construction_Start (Q4 2015 or integer)
+		// First_Steam (Q4 2015 or integer)
+		// Production_Start (Q4 2015 or integer)
+		// Month (November, nov, Nov)
+		// Startup_Date (2013-07-01)
+		foreach ($ORM as $row) {
+			$existsArray = array();
+			foreach ($dateHeaders as $header) {
+				$exists = $row -> $header == NULL || $row -> $header == "" || $row -> $header == "NULL";
+				$existsArray[$header] = !($exists);
+			}
+			$existsMonthYear = var_export($existsArray["Month"], TRUE) . var_export($existsArray["Year"], TRUE);
+			
+			switch ($existsMonthYear) {
+				case 'truetrue' :
+				$date = array(
+				"Year" => $row -> Year,
+				"Month" => $row -> Month,
+				"Day" => "01"
+				);
+				$newDate = Helper::convert_date($date, "YMD");
+				break;
+				
+				case 'falsetrue' :
+				$date = $row -> Year;
+				if (fmod(floatval($date), 1.0) == 0) {
+					$newDate = Helper::convert_date($date, "int");
+				}
+				else {
+					$newDate = Helper::convert_date($date, "dec");
+				}
+				break;
+				
+				case "falsefalse" :
+				$date = $row -> Date;
+				
+				$date = explode("-", $date);
+				if (count($date) == 3) {
+					
+					$date = array(
+					"Year" => $date[0],
+					"Month" => $date[1],
+					"Day" => $date[2]
+					);
+					$newDate = Helper::convert_date($date, "YMD");
+				}
+				if (count($date) == 2) {
+					$date = array(
+					"Year" => $date[0],
+					"Month" => $row -> Month,
+					"Day" => "01"
+					);
+					$newDate = Helper::convert_date($date, "YMD");
+				}
+				if (count($date) == 1) {
+					$date = $date[0];
+					if (strlen($date) == 0) {
+						$newDate = NULL;
+					}
+					else {
+						if (fmod($date, 1) == 0) {
+							$newDate = Helper::convert_date($date, "int");
+						}
+						else {
+							$newDate = Helper::convert_date($date, "dec");
+						}
+					}
+				}
+				
+				break;
+			}
+			$row -> Date = $newDate;
+			foreach ($quartalHeaders as $qHeader) {
+				if ($existsArray[$qHeader]) {
+					$date = $row -> $qHeader;
+					
+					if (substr($date, 0, 1) == "Q") {
+						$newDate = Helper::convert_date($date, "Q");
+					}
+					else {
+						$newDate = Helper::convert_date($date, "int");
+					}
+					$row -> $qHeader = $newDate;
+				}
+			}
+			$row -> Month = NULL;
+			$row -> Year = NULL;
+			
+			$row -> save();
+		}
+		
+	}
+	/**
+		* SUMMARY OF sql_add_columns
+		*
+		* DESCRIPTION
+		*
+		* @param TYPE ($sqlTable, $columns) ARGDESCRIPTION
+		*
+		* @return TYPE NAME DESCRIPTION
+	*/
+	function sql_add_columns($sqlTable, $columns)
+	{
+		$dummyRow = ORM::for_table($sqlTable) -> create();
+		$dummyRow -> save();
+		$dummyRowId = $dummyRow -> id();
+		$sql_table = ORM::for_table($sqlTable) -> find_one() -> as_array();
+		
+		foreach ($columns as $column) {
+			if (!(array_key_exists($column, $sql_table))) {
+				$query = "ALTER TABLE " . $sqlTable . " ADD COLUMN " . $column . " TINYTEXT";
+				ORM::for_table($sqlTable) -> raw_execute($query);
+			}
+		}
+		
+		$dummyRow = ORM::for_table($sqlTable) -> find_one($dummyRowId);
+		$dummyRow -> delete();
+		
+	}
+	
+	/*
+		
+	*/
+	
+	/*
+		
+	*/
+	/**
+		* SUMMARY OF sql_select_columns
+		*
+		* DESCRIPTION
+		*
+		* @param TYPE ($array, $columns, $alwaysAsArray = FALSE) ARGDESCRIPTION
+		*
+		* @return TYPE NAME DESCRIPTION
+	*/
+	function sql_select_columns($array, $columns, $alwaysAsArray = FALSE)
+	{
+		if (gettype($columns) != "array") {
+			$columns = array($columns);
+		}
+		$newArray = array();
+		
+		foreach ($array as $rowKey => $row) {
+			if (gettype($row) != "array") {
+				$row = array($rowKey => $row);
+			}
+			
+			foreach ($row as $colKey => $cell) {
+				if (in_array($colKey, $columns)) {
+					if (count($columns) > 1 || $alwaysAsArray) {
+						$newArray[$rowKey][$colKey] = $cell;
+					}
+					else {
+						$newArray[$rowKey] = $cell;
+					}
+				}
+			}
+		}
+		return $newArray;
+	}
+	
+	/*
+		
+	*/
+	/**
+		* SUMMARY OF sql_get_columnNames
+		*
+		* DESCRIPTION
+		*
+		* @param TYPE ($sqlTable) ARGDESCRIPTION
+		*
+		* @return TYPE NAME DESCRIPTION
+	*/
+	function sql_get_columnNames($sqlTable)
+	{
+		$dummyRow = ORM::for_table($sqlTable) -> create();
+		$dummyRow -> save();
+		$dummyRowId = $dummyRow -> id();
+		$sqlColumns = array_keys(ORM::for_table($sqlTable) -> find_one() -> as_array());
+		
+		$dummyRow = ORM::for_table($sqlTable) -> find_one($dummyRowId);
+		$dummyRow -> delete();
+		
+		return $sqlColumns;
+	}
+	
+
+	/**
+		* SUMMARY OF sql_insert_array
+		*
+		* DESCRIPTION
+		*
+		* @param TYPE ($array, $sqlTable, $maxString = 5000, $updateLog = TRUE) ARGDESCRIPTION
+		*
+		* @return TYPE NAME DESCRIPTION
+	*/
+	function sql_insert_array($array, $sqlTable, $maxString = 5000, $updateLog = TRUE)
+	{
+		//echo print_r($array) .  "<br>";
+		if (count($array) < 1) {
+			echo "Empty array given! <br>";
+			return;
+		}
+		
+		$headers = array_keys(reset($array));
+		
+		Helper::sql_add_columns($sqlTable, $headers);
+		
+		$queryStart = "INSERT INTO " . $sqlTable . " (" . implode(" , ", $headers) . ") VALUES ";
+		$query = "";
+		
+		foreach ($array as $rowKey => $row) {
+			$newRow = array();
+			foreach ($row as $colKey => $cell) {
+				switch ($colKey) {
+					case "id" :
+					// we let MySQL decide the new id
+					$newRow[$colKey] = "";
+					break;
+					default :
+					$newRow[$colKey] = $cell;
+				}
+			}
+			$newRow = "('" . implode("' , '", $newRow) . "'),";
+			$query .= $newRow;
+			
+			if (strlen($query) > $maxString) {
+				$totalQuery = $queryStart . rtrim($query, ",") . ";";
+				ORM::for_table($sqlTable) -> raw_execute($totalQuery);
+				$query = "";
+			}
+		}
+		//add the rest
+		if (strlen($query) > 2) {
+			$totalQuery = $queryStart . rtrim($query, ",") . ";";
+			
+			ORM::for_table($sqlTable) -> raw_execute($totalQuery);
+		}
+		if ($updateLog) {
+			if (ORM::for_table('osdb_logs') -> count() > 50000) {
+				ORM::for_table("osdb_logs") -> raw_execute("TRUNCATE TABLE osdb_logs;");
+			}
+			date_default_timezone_set("UTC");
+			$newEntry = ORM::for_table("osdb_logs") -> create();
+			$newEntry -> Table = $sqlTable;
+			$newEntry -> Timestamp = date("Y-m-d\TH:i:s", time());
+			$newEntry -> save();
+		}
+	}
+	
 	/*
 		* Contains custom SQL-functions that use PDO
 		* assumes that a config.ini -file exists matching the template given in this folder
@@ -482,3 +839,4 @@
 		
 		return $result;
 	}
+
