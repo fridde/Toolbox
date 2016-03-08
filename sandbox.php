@@ -2,7 +2,17 @@
 
 //include("include.php");
 include("autoload.php");
+include("update.php");
 
+//echo getRecentCommitTime("fridde", "friddes_php_functions");
+
+$time = "2016-03-08T07:40:52+00:00";
+$age = 7;
+$unit = "h";
+
+echo var_dump(is_older_than($time, $age, $unit));
+
+/*
 use \Fridde\HTML as H;
 
 $H = new H;
