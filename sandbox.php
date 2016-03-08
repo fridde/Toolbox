@@ -3,11 +3,17 @@
 //include("include.php");
 include("autoload.php");
 
-use \Fridde\Utility as U;
+use \Fridde\HTML as H;
 
-$U = new U;
+$H = new H;
 
-$U->redirect("http://www.uu.se");
+$div = $H->add($H->body, "div");
+$H->add($div, "h1", "Super title"); 
+$p = $H->add($div, "p", "Some beautiful text");
+$H->add_hidden_input($p, array("animal" => "cat", "adress" => "main road"));
+
+$H->render();
+
  //echo "Hej!"; 
 //activate_all_errors();
 
