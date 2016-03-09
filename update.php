@@ -26,16 +26,16 @@
 		return $commit_date->format('c'); // ISO 8601
 	}
 	/**
-	* [Summary].
-	*
-	* [Description]
-	
-	* @param [Type] $[Name] [Argument description]
-	*
-	* @return [type] [name] [description]
+		* [Summary].
+		*
+		* [Description]
+		
+		* @param [Type] $[Name] [Argument description]
+		*
+		* @return [type] [name] [description]
 	*/ 
 	function is_older_than($time, $age, $unit = "s"){
-	
+		
 		$conversion_factors = array("s" => 1, "min" => 60, "h" => 3600, "d" => 86400);
 		
 		$now = strtotime("now");
@@ -44,7 +44,28 @@
 		return ($diff > $age);
 	}
 	
-	
+	/**
+		* [Summary].
+		*
+		* [Description]
+		
+		* @param [Type] $[Name] [Argument description]
+		*
+		* @return [type] [name] [description]
+	*/ 
+	function update_file_from_repo($file, $user, $repo, $folder = "src"){
+		
+		$local_file_name = "";
+		$url = https://raw.githubusercontent.com/"
+		$url .= $user . "/" . $repo ."/master/";
+		if($folder != ""){
+			$url .= $folder . "/";
+			$local_file_name .= $folder . "/";
+		}
+		$url .= $file;
+		$local_file_name .= $file;
+		copy($url, $url);
+	}
 	
 	/*
 		
