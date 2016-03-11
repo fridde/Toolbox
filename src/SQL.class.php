@@ -46,7 +46,7 @@
 			* @param TYPE ("id")) ARGDESCRIPTION
 			*
 			* @return TYPE NAME DESCRIPTION
-		*/
+		
 		public static function  sql_remove_duplicates($sqlTable, $ignoreArray = array("id"))
 		{
 			
@@ -69,7 +69,7 @@
 			
 			return $rowsBefore - $rowsAfter;
 		}
-		
+		*/
 		/**
 			* SUMMARY OF sql_convert_dates
 			*
@@ -78,7 +78,7 @@
 			* @param TYPE ($sourceId, $tableName) ARGDESCRIPTION
 			*
 			* @return TYPE NAME DESCRIPTION
-		*/
+		
 		public static function  sql_convert_dates($sourceId, $tableName)
 		{
 			$ORM = ORM::for_table($tableName) -> where("Source_Id", $sourceId) -> find_many();
@@ -201,6 +201,7 @@
 			}
 			
 		}
+		*/
 		/**
 			* SUMMARY OF sql_add_columns
 			*
@@ -209,7 +210,7 @@
 			* @param TYPE ($sqlTable, $columns) ARGDESCRIPTION
 			*
 			* @return TYPE NAME DESCRIPTION
-		*/
+		
 		public static function  sql_add_columns($sqlTable, $columns)
 		{
 			$dummyRow = ORM::for_table($sqlTable) -> create();
@@ -228,9 +229,6 @@
 			$dummyRow -> delete();
 			
 		}
-		
-		/*
-			
 		*/
 		
 		/*
@@ -282,7 +280,7 @@
 			* @param TYPE ($sqlTable) ARGDESCRIPTION
 			*
 			* @return TYPE NAME DESCRIPTION
-		*/
+		
 		public static function  sql_get_columnNames($sqlTable)
 		{
 			$dummyRow = ORM::for_table($sqlTable) -> create();
@@ -295,7 +293,7 @@
 			
 			return $sqlColumns;
 		}
-		
+		*/
 		
 		/**
 			* SUMMARY OF sql_insert_array
@@ -305,7 +303,8 @@
 			* @param TYPE ($array, $sqlTable, $maxString = 5000, $updateLog = TRUE) ARGDESCRIPTION
 			*
 			* @return TYPE NAME DESCRIPTION
-		*/
+		
+		
 		public static function  sql_insert_array($array, $sqlTable, $maxString = 5000, $updateLog = TRUE)
 		{
 			//echo print_r($array) .  "<br>";
@@ -359,9 +358,9 @@
 				$newEntry -> save();
 			}
 		}
-		
+		*/
 		/*
-			* Contains custom SQL-function s that use PDO
+			* Contains custom SQL-function s that use \PDO
 			* assumes that a config.ini -file exists matching the template given in this folder
 			
 		*/
@@ -415,10 +414,11 @@
 			}
 			
 			try {
-				$conn = new PDO("mysql:host=$cd[0];dbname=$cd[1];", $cd[2], $cd[3]);
+				$conn = new \PDO("mysql:host=$cd[0];dbname=$cd[1];", $cd[2], $cd[3]);
 				$conn->exec("SET NAMES utf8");
-				$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-				} catch (PDOException $e) {
+				$conn->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+				$conn->setFetchMode(\PDO::FETCH_ASSOC)
+				} catch (\PDOException $e) {
 				echo $e->getMessage();
 			}
 			return $conn;
@@ -444,7 +444,6 @@
 			$stmt->execute();
 			
 			// set the resulting array to associative
-			$queryResult = $stmt->setFetchMode(PDO::FETCH_ASSOC);
 			
 			$resultArray = $stmt->fetchAll();
 			$conn = null;
@@ -634,9 +633,6 @@
 			$stmt = $conn->prepare($query);
 			$stmt->execute();
 			
-			// set the resulting array to associative
-			$queryResult = $stmt->setFetchMode(PDO::FETCH_ASSOC);
-			
 			$resultArray = array();
 			foreach ($stmt->fetchAll() as $row) {
 				$resultArray[] = $row;
@@ -727,9 +723,6 @@
 			$stmt = $conn->prepare($query);
 			$stmt->execute();
 			
-			// set the resulting array to associative
-			$stmt->setFetchMode(PDO::FETCH_ASSOC);
-			
 			$queryResult = $stmt->fetchAll();
 			
 			$headers = array();
@@ -803,9 +796,6 @@
 			$conn = sql_connect($otherDB);
 			$stmt = $conn->prepare($query);
 			$stmt->execute();
-			
-			// set the resulting array to associative
-			$stmt->setFetchMode(PDO::FETCH_ASSOC);
 			
 			$queryResult = $stmt->fetchAll();
 			

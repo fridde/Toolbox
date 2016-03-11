@@ -7,6 +7,7 @@
 		private $html;
 		public $head;
 		public $body;
+		const EMPTY_ELEMENTS = array("area","base","br","col","command","embed","hr","img","input","link","meta","param","source");
 		
 		function __construct ()
 		{
@@ -14,17 +15,75 @@
 			$this->initialize();
 		}
 		
+		function getEmpty(){
+			return self::EMPTY_ELEMENTS;
+		}
+		
 		public function render($echo = true)
 		{
-			$prequel = "<!DOCTYPE html>";
+			$prequel = "<!DOCTYPE html>\n";
 			$this->formatOutput = true;
 			$output = $this->saveHTML();
+			//echo $output . "\n";
+			//$output = $this->indent($output);
 			
 			if($echo){
 				echo $prequel. $output;
-				} else {
+			} 
+			else {
 				return $prequel . $output;
 			}
+		}
+		
+		public function indent($text)
+		{
+			// Create new lines where necessary
+			
+			$pattern = "/<" . implode("|<", $this->getEmpty()). "/";
+			
+			$find = array('<', '>', '</', "\n\n");
+			$replace = array("\n<", ">\n", "\n</", "\n");
+			$text = str_replace($find, $replace, $text);
+			$text = trim($text); // for the \n that was added after the final tag
+			
+			$text_array = explode("\n", $text);
+			//print_r($text_array);
+			$open_tags = 0;
+			$tabs = '';
+			foreach ($text_array as $line_number => $line_content){
+				if ($line_number > 1){ // The first two lines shouldn't affect the indentation
+					$tabs = str_repeat(" ", 4 * $open_tags);
+				}
+				if ($line_number > 0) {
+					$is_empty_element = preg_match($pattern, $line_content) != 0;
+					$is_tag = strpos($line_content, '>') !== false;
+					$is_closing_tag = strpos($line_content, '</') !== false;
+					$is_opening_tag = $is_tag && !$is_closing_tag;
+					
+					if($is_opening_tag && !$is_empty_element){
+						$open_tags++;
+					}
+					else if(!$is_closing_tag){
+						$open_tags--;
+					}
+					
+					/* if opening tag but not void 
+							increase
+						else 
+							decrease
+					*/
+					
+				}
+				if(trim($line_content) != ""){
+					$new_array[] = $tabs . $line_content;
+				}
+				
+				$tabs = '';
+			}
+			
+			$indented_text = implode("\n", $new_array);
+			
+			return $indented_text;
 		}
 		
 		private function initialize()
@@ -38,13 +97,13 @@
 			$title = $this->add($this->head, 'meta', "", $meta_attributes);
 		}
 		/**
-		* [Summary].
-		*
-		* [Description]
-		
-		* @param [Type] $[Name] [Argument description]
-		*
-		* @return [type] [name] [description]
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
 		*/ 
 		public function add($node, $tag, $content = "", $attributes = array() )
 		{
@@ -71,7 +130,7 @@
 				foreach($attributes as $attribute_name => $attribute_value){
 					if(is_numeric($attribute_name)){
 						$attribute = $this->createAttribute($attribute_value);
-					} else {
+						} else {
 						$attribute = $this->createAttribute($attribute_name);
 						$attribute->value = $attribute_value;
 					}
@@ -81,7 +140,7 @@
 			}
 			if(count($return_array) == 1){
 				return $return_array[0];
-			} else {
+				} else {
 				return $return_array;
 			}
 		}
@@ -553,4 +612,4 @@
 			
 			return $html;
 		}
-	}																
+	}																																
