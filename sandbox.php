@@ -1,6 +1,6 @@
 <?php
 
-
+// to enable debugging in plugin DBGp, add "?XDEBUG_SESSION_START=test" to your url
 include("autoload.php");
 inc("test");
 
