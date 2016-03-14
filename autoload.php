@@ -5,7 +5,7 @@
 		$repo_files = parse_ini_file("includables.ini", true);
 		$repo_files = $repo_files["repo_files"];
 		
-		if(isset($config_array["autoload"]["updatable"])){
+		if(isset($config_array["autoload"]["updatable"]) && isset($config_array["autoload"]["update"])){
 			$files_to_update = array_map("trim", explode(",", $config_array["autoload"]["update"]));
 			
 			foreach($files_to_update as $file_shortcut){
@@ -15,7 +15,13 @@
 		}
 	}
 	
-	spl_autoload_register(function ($class) {
+	spl_autoload_register('friddes_autoloader');
+	
+	/*
+		Supporting functions for the autoloader-logic
+	*/
+	
+	function friddes_autoloader($class){
 		
 		// project-specific namespace prefix
 		$prefix = 'Fridde\\';
@@ -43,13 +49,57 @@
 		if (file_exists($file)) {
 			require $file;
 		}
-	});		
+	}
 	
-	/*
-		Supporting functions for the autoloader-logic
-	*/
-	
-	function inc(){
+	/**
+		* Quickly include multiple php files.
+		*
+		* [Description]
+		
+		* @param [Type] $[Name] [Argument description]
+		*
+		* @return [type] [name] [description]
+	*/ 
+	function inc($inclusionString, $default_folder = "src/", $return = FALSE){
+		$inclusionArray = array_map("trim", explode(",", $inclusionString));
+		$includables_with_types = get_includables_with_types();
+		
+		foreach($inclusionArray as $inc){
+			$ext = pathinfo($inc, PATHINFO_EXTENSION);
+			
+			if($ext == "php"){ // e.g. "myCustomFolder/myCustomFile.php"
+				include($inc);
+			}
+			else{ 
+				if($ext != ""){	// e.g. "jQuery.min.js"
+					$error = "The function inc() provided in autoload.php can only be used for php-files. You provided '" . $ext;
+				}
+				else{ // e.g. "sql", a possible abbreviation given in includables.ini
+					if($includables_with_types != false){ // includables.ini does exist and creates no errors
+						$type = $includables_with_types[$inc]["type"];
+						$path = $includables_with_types[$inc]["path"];
+						if($type == "repo_files"){
+							$path = array_map("trim", explode(",", $path));
+							$path = $path[3];
+							$file = pathinfo($path, PATHINFO_FILENAME);
+							include($default_folder . $file . ".php");
+						}
+						else if($type == "php_local"){
+							include($default_folder . $path);
+						} 
+						else { // e.g. "jquery"
+							$error = "The function inc() was provided with a valid abbreviation, but invalid filetype. Only php-files are valid. You provided ". $type;
+						}
+					}
+					else { // e.g. "sajhdk212"
+						$error = "The function inc() was provided with an abbreviation, but no corresponding includables.ini within the same folder.";
+					}
+				}
+			}
+		}
+		if(isset($error)){
+			throw new Exception($error);
+		}	
 	}
 	
 	function update_file_from_repo($file, $user, $repo, $folder = "src"){
@@ -63,7 +113,8 @@
 		}
 		$url .= $file;
 		$local_file_name .= $file;
-		copy($url, $url);
+		
+		copy($url, $local_file_name);
 	}	
 	
 	function getRecentCommitTime($user, $repo){
@@ -100,4 +151,29 @@
 		$old_time = strtotime($time);
 		$diff = round(($now - $old_time) / $conversion_factors[$unit],2);
 		return ($diff < $age);
-	}	
+	}
+	
+	function get_includables_with_types($file = "includables.ini"){
+		if(is_readable("includables.ini")){
+			$inc_ini_array = parse_ini_file("includables.ini", true);
+			$return_array = array();
+			
+			foreach($inc_ini_array as $type => $entries){
+				foreach($entries as $abbreviation => $filepath){
+					if(!isset($return_array[$abbreviation])){
+						
+						$return_array[$abbreviation]["type"] = $type;
+						$return_array[$abbreviation]["path"] = $filepath;
+					}
+					else {
+						throw new Exception("includables.ini has duplicate keys! Abbreviation could not be uniquely resolved. Duplicate key: " .  $abbreviation);
+						return false;
+					}
+				}
+			}
+			return $return_array;
+		}
+		else {
+			return false;
+		}
+	}
