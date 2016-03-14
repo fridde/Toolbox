@@ -66,41 +66,50 @@
 		
 		foreach($inclusionArray as $inc){
 			$ext = pathinfo($inc, PATHINFO_EXTENSION);
-			
 			if($ext == "php"){ // e.g. "myCustomFolder/myCustomFile.php"
 				include($inc);
 			}
-			else{ 
+			else { 
 				if($ext != ""){	// e.g. "jQuery.min.js"
-					$error = "The function inc() provided in autoload.php can only be used for php-files. You provided '" . $ext;
+					$error = "The function inc() provided in autoload.php can only be used for php-files. You provided '." . $ext . "'";
 				}
 				else{ // e.g. "sql", a possible abbreviation given in includables.ini
 					if($includables_with_types != false){ // includables.ini does exist and creates no errors
-						$type = $includables_with_types[$inc]["type"];
-						$path = $includables_with_types[$inc]["path"];
-						if($type == "repo_files"){
-							$path = array_map("trim", explode(",", $path));
-							$path = $path[3];
-							$file = pathinfo($path, PATHINFO_FILENAME);
-							include($default_folder . $file . ".php");
+						if(!isset($includables_with_types[$inc])){
+							$error = "The function inc() was provided with a nonexisting abbreviation: " . $inc;
 						}
-						else if($type == "php_local"){
-							include($default_folder . $path);
-						} 
-						else { // e.g. "jquery"
-							$error = "The function inc() was provided with a valid abbreviation, but invalid filetype. Only php-files are valid. You provided ". $type;
+						else {
+							$type = $includables_with_types[$inc]["type"];
+							$path = $includables_with_types[$inc]["path"];
+							if($type == "repo_files"){
+								$repo_parts = array_map("trim", explode(",", $path));
+								$path = $default_folder . pathinfo($repo_parts[3], PATHINFO_FILENAME) . ".php";
+								if(!is_readable($path)){
+									update_file_from_repo($repo_parts[3], $repo_parts[0], $repo_parts[1], $repo_parts[2]);
+								}
+								include($path);
+							}
+							else if($type == "php_local"){
+								include($default_folder . $path);
+							} 
+							else { // e.g. "jquery"
+								$error = "The function inc() was provided with a valid abbreviation, but invalid filetype. Only php-files are valid. You provided .". $type;
+							}
 						}
 					}
-					else { // e.g. "sajhdk212"
+					else { 
 						$error = "The function inc() was provided with an abbreviation, but no corresponding includables.ini within the same folder.";
 					}
+					
+					
 				}
 			}
+			if(isset($error)){
+				throw new Exception($error);
+			}
 		}
-		if(isset($error)){
-			throw new Exception($error);
-		}	
 	}
+	
 	
 	function update_file_from_repo($file, $user, $repo, $folder = "src"){
 		
@@ -177,3 +186,4 @@
 			return false;
 		}
 	}
+		
