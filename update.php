@@ -66,15 +66,14 @@
 		$local_file_name .= $file;
 		copy($url, $url);
 	}
-	
-	/*
+	/**
+		* [Summary].
+		*
+		* [Description]
 		
-		
-		$diff = $commit_date->diff(new DateTime('now'));
-		$diff = $diff->format('c'); //
-		
-		echo $diff;
-	*/
-	
+		* @param [Type] $[Name] [Argument description]
+		*
+		* @return [type] [name] [description]
+	*/ 
 	
 	
