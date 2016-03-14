@@ -24,30 +24,42 @@
 	function friddes_autoloader($class){
 		
 		// project-specific namespace prefix
-		$prefix = 'Fridde\\';
+		$class_parts = explode("\\", $class);
+		$prefix = array_shift($class_parts);
+		$path_parts = $class_parts;
+		$possible_prefixes = array('Fridde', 'DrewM');
 		
 		// base directory for the namespace prefix
 		$base_dir = __DIR__ . '\src\\';
 		
 		// does the class use the namespace prefix?
-		$len = strlen($prefix);
-		if (strncmp($prefix, $class, $len) !== 0) {
-			// no, move to the next registered autoloader
+		if(!in_array($prefix, $possible_prefixes)){
+			throw new Exception("The autoloader couldn't match the prefix of the class " . $class);
 			return;
 		}
 		
-		// get the relative class name
-		$relative_class = substr($class, $len);
+		$last_index = count($path_parts) - 1;
+		//e.g. Fridde\Controller\Controller should be Fridde\Controller
+		if($last_index > 0 && $path_parts[$last_index] == $path_parts[$last_index -1]){ 
+			array_pop($path_parts);
+		}
 		
-		// replace the namespace prefix with the base directory, replace namespace
-		// separators with directory separators in the relative class name, append
-		// with .php
-		$file = $base_dir . $relative_class . '.class.php';
+		$relative_class = implode("\\", $class_parts);
+		$path = implode("\\", $path_parts);
+
+		$file = $base_dir . $path . '.class.php';
 		
-		
-		// if the file exists, require it
-		if (file_exists($file)) {
+		if (is_readable($file)) {
 			require $file;
+		} 
+		else {
+			$file = $base_dir . $path . '.php';
+			if(is_readable($file)){
+				require $file;
+			}
+			else {
+				throw new Exception("Tried to autoload " . $class . ", but couldn't find file " . $file);
+			}
 		}
 	}
 	
@@ -186,4 +198,3 @@
 			return false;
 		}
 	}
-		
