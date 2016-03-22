@@ -10,9 +10,11 @@
     ],
     "require": {
         "drewm/mailchimp-api": "^2.1",
-        "erusev/parsedown": "^1.6"
+        "erusev/parsedown": "^1.6",
+        "pear/config_lite": "dev-master"
     },
 	"autoload": {
         "psr-4": { "Fridde\\": "src/" }
-	}
+	},
+	"minimum-stability": "dev"
 }

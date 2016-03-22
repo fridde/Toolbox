@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "f8eac63842e566a89960b9abdb9c1ae7",
-    "content-hash": "415658832d844a49b36ecfbec39a0c55",
+    "hash": "d4793246b51b9802369be7274f7f307f",
+    "content-hash": "c9bf9f2b8b2c8e5631c324d418fb5caf",
     "packages": [
         {
             "name": "drewm/mailchimp-api",
@@ -87,12 +87,55 @@
                 "parser"
             ],
             "time": "2015-10-04 16:44:32"
+        },
+        {
+            "name": "pear/config_lite",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/pear/Config_Lite.git",
+                "reference": "f4e4226957402451789a63cd86337b0737dcce42"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/pear/Config_Lite/zipball/f4e4226957402451789a63cd86337b0737dcce42",
+                "reference": "f4e4226957402451789a63cd86337b0737dcce42",
+                "shasum": ""
+            },
+            "require-dev": {
+                "phpunit/phpunit": "*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "": "./"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "include-path": [
+                "./"
+            ],
+            "license": [
+                "PHP-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "Patrick C. Engel",
+                    "email": "pce@php.net",
+                    "role": "Lead"
+                }
+            ],
+            "description": "Lightweight package for ini style configuration/settings text files",
+            "homepage": "http://pear.php.net/package/Config_Lite",
+            "time": "2015-10-07 18:38:02"
         }
     ],
     "packages-dev": [],
     "aliases": [],
-    "minimum-stability": "stable",
-    "stability-flags": [],
+    "minimum-stability": "dev",
+    "stability-flags": {
+        "pear/config_lite": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],

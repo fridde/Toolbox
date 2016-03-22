@@ -1,65 +1,28 @@
 <?php 
 	
-	if(is_readable("config.ini") && is_readable("includables.ini")){
-		$config_array = parse_ini_file("config.ini", true);
-		$repo_files = parse_ini_file("includables.ini", true);
-		$repo_files = $repo_files["repo_files"];
-		
-		if(isset($config_array["autoload"]["updatable"]) && isset($config_array["autoload"]["update"])){
-			$files_to_update = array_map("trim", explode(",", $config_array["autoload"]["update"]));
+	/**
+	* [Summary].
+	*
+	* [Description]
+	
+	* @param [Type] $[Name] [Argument description]
+	*
+	* @return [type] [name] [description]
+	*/ 
+	function update_all_from_repo(){
+		if(is_readable("config.ini") && is_readable("includables.ini")){
+			$config_array = parse_ini_file("config.ini", true);
+			$repo_files = parse_ini_file("includables.ini", true);
+			$repo_files = $repo_files["repo_files"];
 			
-			foreach($files_to_update as $file_shortcut){
-				$file_variables = array_map("trim", explode(",", $repo_files[$file_shortcut]));
-				update_file_from_repo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
-			}
-		}
-	}
-	
-	spl_autoload_register('friddes_autoloader');
-	
-	/*
-		Supporting functions for the autoloader-logic
-	*/
-	
-	function friddes_autoloader($class){
-		
-		// project-specific namespace prefix
-		$class_parts = explode("\\", $class);
-		$prefix = array_shift($class_parts);
-		$path_parts = $class_parts;
-		$possible_prefixes = array('Fridde', 'DrewM');
-		
-		// base directory for the namespace prefix
-		$base_dir = __DIR__ . '\src\\';
-		
-		// does the class use the namespace prefix?
-		if(!in_array($prefix, $possible_prefixes)){
-			throw new Exception("The autoloader couldn't match the prefix of the class " . $class);
-			return;
-		}
-		
-		$last_index = count($path_parts) - 1;
-		//e.g. Fridde\Controller\Controller should be Fridde\Controller
-		if($last_index > 0 && $path_parts[$last_index] == $path_parts[$last_index -1]){ 
-			array_pop($path_parts);
-		}
-		
-		$relative_class = implode("\\", $class_parts);
-		$path = implode("\\", $path_parts);
-
-		$file = $base_dir . $path . '.class.php';
-		
-		if (is_readable($file)) {
-			require $file;
-		} 
-		else {
-			$file = $base_dir . $path . '.php';
-			if(is_readable($file)){
-				require $file;
-			}
-			else {
-				throw new Exception("Tried to autoload " . $class . ", but couldn't find file " . $file);
-			}
+			if(isset($config_array["autoload"]["update"])){
+				$files_to_update = array_map("trim", explode(",", $config_array["autoload"]["update"]));
+				
+				foreach($files_to_update as $file_shortcut){
+					$file_variables = array_map("trim", explode(",", $repo_files[$file_shortcut]));
+					update_file_from_repo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
+				}
+				}
 		}
 	}
 	
@@ -72,7 +35,7 @@
 		*
 		* @return [type] [name] [description]
 	*/ 
-	function inc($inclusionString, $default_folder = "src/", $return = FALSE){
+	function inc($inclusionString, $return = FALSE){
 		$inclusionArray = array_map("trim", explode(",", $inclusionString));
 		$includables_with_types = get_includables_with_types();
 		
@@ -95,14 +58,14 @@
 							$path = $includables_with_types[$inc]["path"];
 							if($type == "repo_files"){
 								$repo_parts = array_map("trim", explode(",", $path));
-								$path = $default_folder . pathinfo($repo_parts[3], PATHINFO_FILENAME) . ".php";
+								$path = pathinfo($repo_parts[3], PATHINFO_FILENAME) . ".php";
 								if(!is_readable($path)){
 									update_file_from_repo($repo_parts[3], $repo_parts[0], $repo_parts[1], $repo_parts[2]);
 								}
 								include($path);
 							}
 							else if($type == "php_local"){
-								include($default_folder . $path);
+								include($path);
 							} 
 							else { // e.g. "jquery"
 								$error = "The function inc() was provided with a valid abbreviation, but invalid filetype. Only php-files are valid. You provided .". $type;
@@ -121,7 +84,6 @@
 			}
 		}
 	}
-	
 	
 	function update_file_from_repo($file, $user, $repo, $folder = "src"){
 		
