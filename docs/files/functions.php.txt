@@ -1,7 +1,5 @@
 <?php
 	
-	namespace Fridde;
-	
 	/**
 		* Redirect to a given url.
 		*

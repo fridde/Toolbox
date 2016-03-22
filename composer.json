@@ -1,0 +1,15 @@
+{
+    "name": "fridde/toolbox",
+    "description": "Fridde's broad collection of tools in php",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "fridde",
+            "email": "f@hehl.se"
+        }
+    ],
+    "require": {
+        "drewm/mailchimp-api": "^2.1",
+        "erusev/parsedown": "^1.6"
+    }
+}

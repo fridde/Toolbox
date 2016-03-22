@@ -1,33 +1,46 @@
 <?php
+function print_r2($val){
+        echo '<pre>';
+        var_export($val);
+        echo  '</pre>';
+}
 
-//include("include.php");
-include("functions.php");
-include("sql_functions.php");
- //echo "Hej!"; 
-activate_all_errors();
+// to enable debugging in plugin DBGp, add "?XDEBUG_SESSION_START=test" to your url
 
-//$grupper = sql_select("grupper");
-//$selected_groups = array_select_where($grupper, array("g_arskurs" => "NOT:2/3"), "all", TRUE);
-//echop($selected_groups);
+include("autoload.php");
 
-//sql_delete("testtable");
+use \DrewM\MailChimp\MailChimp as M;
 
-//$criteria = array("AND", array("d5" => "NOT:", "status" => "NOT:archived"));
-//$lararTable = sql_select("larare", $criteria);
-// $sqlTable, $criteria = "", $headers = "all", $not = FALSE, $debug = FALSE
+//echo print_r2(ini_get_all());
+//phpinfo();
 
-//echop($lararTable);
+use \Fridde\HTML as H;
+
+$M = new M("21d78c0b9bca7c55088db8064849f080-us9");
+
+$hash = $M->subscriberHash("maria.reinhed@edu.sigtuna.se");
+//$args = array()
+//echo var_dump($M->get('lists/1ff7412fc8/members/'. $hash));
+//$args = array("count" => 100);
+$args = array("count" => 30);
+//$result = $M->get('lists/1ff7412fc8/members', $args);
+$result = $M->get('lists/1ff7412fc8/interest-categories/8548b28556/interests', $args);
+//$result = $M->get('lists/1ff7412fc8/interest-categories/', $args);
+echo print_r2($result);
+echo "";
 /*
-$html = new HTML();
+$H = new H();
 
-//$atts = array("type" => "button", 'value' => 'My Button', 'style' => 'width:125px');
-$atts = array("class" => "superclass", 'style' => 'width:125px');
+	
 
+$div = $H->add($H->body, "div");
+//$H->add($div, "h1", "Super title"); 
+//$p = $H->add($div, "p", "Some beautiful text");
+//$H->add_hidden_input($p, array("animal" => "cat", "adress" => "main road"));
+$H->add($div, "h1");
 
-$elem = $html->create("div", "", $atts );
-$sub_element = $elem->create("form");
-//$html->appendChild($elem);
-echo $html->saveHTML();
+$H->render();
+
+/*
 */
-?>
 

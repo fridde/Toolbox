@@ -21,12 +21,13 @@ function inc($inclusionString, $debug = FALSE, $return = FALSE){
 		"000" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/functions",
 		"001" => "https://raw.githubusercontent.com/fridde/friddes_php_functions/master/sql_functions",
 		"002" => "https://raw.githubusercontent.com/erusev/parsedown/master/Parsedown",
+		"003" => "https://raw.githubusercontent.com/ccampbell/chromephp/master/ChromePhp",
 		/* local php files */
 		"100" => "inc/misc_functions",
 		"101" => "inc/calendar_functions",
 		"102" => "testing/testing_functions",
 		/* remote javascript files hosted by other servers */
-		"200" => "//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min",
+		"200" => "//ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min",
 		"201" => "",
 		"202" => "//cdn.datatables.net/1.10.4/js/jquery.dataTables.min",
 		"203" => "//cdn.datatables.net/responsive/1.0.1/js/dataTables.responsive",
