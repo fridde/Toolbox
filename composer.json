@@ -11,5 +11,8 @@
     "require": {
         "drewm/mailchimp-api": "^2.1",
         "erusev/parsedown": "^1.6"
-    }
+    },
+	"autoload": {
+        "psr-4": { "Fridde\\": "src/" }
+	}
 }
