@@ -7,7 +7,8 @@
 		private $html;
 		public $head;
 		public $body;
-		const EMPTY_ELEMENTS = array("area","base","br","col","command","embed","hr","img","input","link","meta","param","source");
+		const EMPTY_ELEMENTS = ["area","base","br","col","command","embed","hr","img","input","link","meta","param","source"];
+		public $includables;
 		
 		function __construct ()
 		{
@@ -15,17 +16,11 @@
 			$this->initialize();
 		}
 		
-		function getEmpty(){
-			return self::EMPTY_ELEMENTS;
-		}
-		
 		public function render($echo = true)
 		{
 			$prequel = "<!DOCTYPE html>\n";
 			$this->formatOutput = true;
 			$output = $this->saveHTML();
-			//echo $output . "\n";
-			//$output = $this->indent($output);
 			
 			if($echo){
 				echo $prequel. $output;
@@ -35,56 +30,6 @@
 			}
 		}
 		
-		public function indent($text)
-		{
-			// Create new lines where necessary
-			
-			$pattern = "/<" . implode("|<", $this->getEmpty()). "/";
-			
-			$find = array('<', '>', '</', "\n\n");
-			$replace = array("\n<", ">\n", "\n</", "\n");
-			$text = str_replace($find, $replace, $text);
-			$text = trim($text); // for the \n that was added after the final tag
-			
-			$text_array = explode("\n", $text);
-			//print_r($text_array);
-			$open_tags = 0;
-			$tabs = '';
-			foreach ($text_array as $line_number => $line_content){
-				if ($line_number > 1){ // The first two lines shouldn't affect the indentation
-					$tabs = str_repeat(" ", 4 * $open_tags);
-				}
-				if ($line_number > 0) {
-					$is_empty_element = preg_match($pattern, $line_content) != 0;
-					$is_tag = strpos($line_content, '>') !== false;
-					$is_closing_tag = strpos($line_content, '</') !== false;
-					$is_opening_tag = $is_tag && !$is_closing_tag;
-					
-					if($is_opening_tag && !$is_empty_element){
-						$open_tags++;
-					}
-					else if(!$is_closing_tag){
-						$open_tags--;
-					}
-					
-					/* if opening tag but not void 
-							increase
-						else 
-							decrease
-					*/
-					
-				}
-				if(trim($line_content) != ""){
-					$new_array[] = $tabs . $line_content;
-				}
-				
-				$tabs = '';
-			}
-			
-			$indented_text = implode("\n", $new_array);
-			
-			return $indented_text;
-		}
 		
 		private function initialize()
 		{
@@ -105,32 +50,97 @@
 			*
 			* @return [type] [name] [description]
 		*/ 
-		public function add($node, $tag, $content = "", $attributes = array() )
-		{
-			$return_array = array();
-			$element_array = array();
-			$single_element = is_string($tag);
+		public function getIncludables(){
 			
-			if($single_element){
-				$element_array[] = array($tag, $content, $attributes);
-				} else {
+			$includables = false;
+			$file_name = "includables.ini";
+			if(is_readable($file_name)){
+				$includables = parse_ini_file($file_name, true);
+			}
+			return $includables;
+		}
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function prepareForExtraction($default_array, $args) {
+			
+			$args_names = array_keys($default_array);
+			
+			/* check if the arguments are given as a single array with keys corresponding to the keys of $default_array, e.g
+			myFunction(["class" => "redClass", "id" => "mainFrame"]) */
+			if(count($args) == 1 && is_array($args[0]) && !isset($args[0][0])) {
+				$return_array = array_merge($default_array, $args[0]);
+			} 
+			else { // args is a numerical array that follows the order of the default array
+				$return_array = $default_array;
+				foreach($args as $key => $arg){
+					$name = $args_names[$key];
+					$return_array[$name] = $arg;
+				}
+			}
+			return $return_array;
+		}
+		/**
+			* Add a HTML-element to another element(node).
+			*
+			* [Description]
+			
+			* @param Node $node The node to attach this element to
+			* @param string $tag The tag to use for the element OR an array of elements each in turn build as id => [tag, content, attributes]
+			* @param string $content The content for the element.
+			* @param array $attributes The attributes given as "attribute_name" => "attribute_value" OR just as "attribute_name" if the attribute doesn't need a value, e.g. "hidden"
+			*
+			* @return [type] [name] [description]
+		*/ 
+		
+		public function add()
+		{
+			/* $node, $tag, $content, $attributes
+			*/
+			$def = ["node" => null, "tag" => null, "content" => "", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$element_array = array();
+			if(is_string($tag)){
+				$element_array = [[$tag, $content, $atts]];
+			} 
+			
+			else if(is_string(reset($tag))){
+				$element_array = [$tag];
+			}
+			/* $tag consists of an array of elements that each in turn consist of [tag, content, atts]. 
+			The respective keys for each array (if given) are the respective id's of each element */
+			else {
 				$element_array = $tag;
 			}
+			
+			$return_array = array();
 			foreach($element_array as $key => $element){
 				
-				$tag = $element[0];
+				$tag = (isset($element["tag"]) ? $element["tag"] : $element[0]);
 				$content = (isset($element[1]) ? $element[1] : "");
-				$attributes = (isset($element[2]) ? $element[2] : array());
+				$content = (isset($element["content"]) ? $element["content"] : $content);  // a value with a key takes precedence over a value that is in the right order
+				$content = (in_array($tag, self::EMPTY_ELEMENTS) ? "" : $content); // if the tag belongs to the list of void/empty elements, the content is ignored
+				$atts = (isset($element[2]) ? $element[2] : array());
+				$atts = (isset($element["atts"]) ? $element["atts"] : $atts);
+				
 				if(!is_numeric($key)){
-					$attributes["id"] = $key;
+					$atts["id"] = $key;
 				}
 				$element = $this->createElement($tag, $content);
 				
 				//adding attributes to the element
-				foreach($attributes as $attribute_name => $attribute_value){
+				foreach($atts as $attribute_name => $attribute_value){
 					if(is_numeric($attribute_name)){
 						$attribute = $this->createAttribute($attribute_value);
-						} else {
+					} 
+					else {
 						$attribute = $this->createAttribute($attribute_name);
 						$attribute->value = $attribute_value;
 					}
@@ -140,11 +150,9 @@
 			}
 			if(count($return_array) == 1){
 				return $return_array[0];
-				} else {
-				return $return_array;
-			}
+			} 
+			return $return_array;
 		}
-		
 		
 		
 		/**
@@ -157,65 +165,252 @@
 			*
 			* @return TYPE NAME DESCRIPTION
 		*/
-		public function add_hidden_input($node, $array)
+		public function addHiddenInput($node, $array)
 		{
 			foreach($array as $name => $value){
 				$this->add($node, "input", "", array("hidden", "name" => $name, "value" => $value));
 			}
 		}
+		
 		/**
-			* SUMMARY OF tag($tagName, $content = "", $attributes = array
+			* [Summary].
 			*
-			* DESCRIPTION
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
 			*
-			* @param TYPE (), $id = "") ARGDESCRIPTION
-			*
-			* @return TYPE NAME DESCRIPTION
-		*/
-		
-		
-		public static function tag($tagName, $content = "", $attributes = array(), $id = "")
+			* @return [type] [name] [description]
+		*/ 
+		//file_name or abbreviation, is_verbatim, 
+		public function addJs()
 		{
+			$def = ["arg0" => null, "is_script_content" => false, "node" => null];
+			extract($this->prepareForExtraction($def, func_get_args()));
 			
-			/* args: string $tagName, [string $content, array $attributes OR string $class]
-				
-			*/
-			/* these elements don't need to be closed*/
-			$void_elements = array("area","base","br","col","command","embed","hr","img","input","link","meta","param","source");
-			/* these elements will be included in case no attribute-array was given*/
+			$includables = $this->getIncludables();
 			
-			$close = substr($tagName, 0, 1) == '/';
+			$is_local = isset($includables["js_local"][$arg0]);
+			$is_remote = isset($includables["js_remote"][$arg0]);
+			$is_file = substr($arg0, -3) == ".js";
 			
-			$output = '<' . $tagName;
-			if(!$close){
-				$atts = array();
-				if(gettype($attributes) == "string"){
-					$atts["class"] = $attributes;
-					if($id != ""){
-						$atts["id"] = $id;
-					}
-				}
-				elseif(gettype($attributes) == "array" && count($attributes) > 0){
-					$atts = $attributes;
-				}
-				
-				foreach($atts as $att => $attVal){
-					if(is_int($att)){
-						$output .= ' ' . $attVal;
-					}
-					else {
-						$output .= ' ' . $att . '="' . $attVal . '"';
-					}
-				}
-				$output .= '>';
-				
-				if(!in_array($tagName, $void_elements)){
-					$output .= $content . '</' . $tagName . '>';
-				}
+			$file_name = false;
+			$content = "";
+			$atts = ["type" => "text/javascript"];
+			$node = (!$node ? $this->head : $node);
+			
+			if($is_local){
+				$file_name = $includables["js_local"][$arg0];
+			}
+			else if($is_remote){
+				$file_name = $includables["js_remote"][$arg0];
+			}
+			else if($is_file){
+				$file_name = $arg0;
+			}
+			else if($is_script_content){ 
+				$content = $arg0;
+			}
+			else {
+				throw new \Exception("Given argument to addJs() is neither valid abbreviation given in includables.ini OR a valid js-file OR actual script content ");
 			}
 			
-			return $output;
+			if(!$is_script_content){
+				$atts["src"] = $file_name;
+			}
+			$this->add($node, "script", $content, $atts);
 		}
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		
+		public function addLink()
+		{
+			
+			$def = ["node" => null, "adress" => "", "content" => "", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			if($adress != ""){
+				$atts["href"] = $adress;
+			}
+			if($content == ""){
+				$content = $adress;
+			}
+			$link = $this->add($node, "a", $content, $atts);
+			return $link;
+		}
+		
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addButton()
+		{
+			$def = ["node" => null, "content" => "", "type" => "button", "form_id" => "",
+			"formaction" => "", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$atts["type"] = $type;
+			if($form_id != ""){
+				$atts["form"] = $form_id;
+			}
+			if($formaction != "" && $type == "submit"){
+				$atts["formaction"] = $formaction;
+			}
+			$button = $this->add($node, "button", $content, $atts);
+			return $button;
+		}
+		
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addForm() 
+		{
+			$def = ["node" => null, "id" => substr(uniqid(), 0, 5), "action" => "", "content" => "", "method" => "post", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$atts["method"] = $method;
+			$atts["id"] = $id;
+			if($action != ""){
+				$atts["action"] = $action;
+			}
+			$form = $this->add($node, "form", $content, $atts);
+			return $form;
+		}
+		
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addList() 
+		{
+			$def = ["node" => null, "elements" => array(), "type" => "ul", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$list = $this->add($node, $type, "", $atts);
+			$list_elements = array();
+			foreach($elements as $element){
+				$content = (is_array($element) ? $element[0] : $element);
+				$atts = (is_array($element) ? $element[1] : array());
+				$list_elements[] = $this->add($list, "li", $content, $atts);
+			}
+			return $list_elements;
+		}
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addIframe()
+		{
+			$def = ["node" => null, "src" => null, "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$atts = array_merge($atts, ["src" => $src]);
+			$iframe = $this->add($node, "iframe", "", $atts);
+			return $iframe;
+		} 
+		
+		public function addImg()
+		{
+			$def = ["node" => null, "src" => null, "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$atts = array_merge($atts, ["src" => $src]);
+			$img = $this->add($node, "img", "", $atts);
+			return $img;
+		} 
+		
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addInput()
+		{
+			$def = ["node" => null, "name" => null, "type" => "text", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$atts["type"] = $type;
+			if($type != "submit"){
+				$atts["name"] = $name;
+			}
+			else if (!isset($atts["value"])) {
+				$atts["value"] = "Submit";
+			}
+			
+			$input = $this->add($node, "input", "", $atts);
+			return $input;
+		} 
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addSelect()
+		{
+			$def = ["node" => null, "name" => null, "options" => array() , "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$select = $this->add($node, "select", "", $atts);
+			$select_array = array();
+			foreach($options as $option_text => $option){
+				if(is_array($option)){ 
+					// given as [option_text, option_value, atts]. If option_value is an empty string, it is assumed to be equal option_text
+					$option_text = $option[0];
+					$option_value = (isset($option[1]) &&  $option[1] != "" ? $option[1] : $option_text);
+					$option_atts = (isset($option[2]) ? $option[2] : array());
+				}
+				else {
+					$option_text = $option_value = $option;
+					$option_atts = array();
+				}
+				$option_atts["value"] = $option_value;
+				
+				$select_array[] = $this->add($select, "option", $option_text, $option_atts);
+			}
+			
+			return $select_array;
+		} 
+		
+		/*
+			option, p, 
+			pre, script, select, strong, style, sub, sup, table, tbody, td, textarea, th, thead, time, title, tr, ul
+		*/
+		
 		/**
 			* SUMMARY OF qtag
 			*
@@ -225,7 +420,6 @@
 			*
 			* @return TYPE NAME DESCRIPTION
 		*/
-		
 		public static function qtag()
 		{
 			/* will create a html-tag and chose from a set of standard variables
@@ -612,4 +806,4 @@
 			
 			return $html;
 		}
-	}																																
+	}																																																																																																						
