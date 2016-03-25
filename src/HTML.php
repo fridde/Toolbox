@@ -5,6 +5,7 @@
 	class HTML extends \DOMDocument{
 		
 		private $html;
+		public $title;
 		public $head;
 		public $body;
 		const EMPTY_ELEMENTS = ["area","base","br","col","command","embed","hr","img","input","link","meta","param","source"];
@@ -13,9 +14,32 @@
 		function __construct ()
 		{
 			parent::__construct();
+			$args = func_get_args();
+			$this->title = (isset($args[0]) ? $args[0] : "");
 			$this->initialize();
 		}
 		
+		private function initialize()
+		{
+			$this->preserveWhiteSpace = false;
+			$this->html = $this->add($this, 'html');
+			$this->head = $this->add($this->html, 'head');
+			$this->body = $this->add($this->html, "body");
+			
+			$meta_attributes = array("http-equiv" => "Content-Type", "content" => "text/html; charset=UTF-8");
+			$this->add($this->head, 'meta', "", $meta_attributes);
+			$this->add($this->head, 'title', $this->title);
+			$this->includables = $this->getIncludables();
+		}
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
 		public function render($echo = true)
 		{
 			$prequel = "<!DOCTYPE html>\n";
@@ -29,18 +53,6 @@
 				return $prequel . $output;
 			}
 		}
-		
-		
-		private function initialize()
-		{
-			$this->preserveWhiteSpace = false;
-			$this->html = $this->add($this, 'html');
-			$this->head = $this->add($this->html, 'head');
-			$this->body = $this->add($this->html, "body");
-			
-			$meta_attributes = array("http-equiv" => "Content-Type", "content" => "text/html; charset=UTF-8");
-			$title = $this->add($this->head, 'meta', "", $meta_attributes);
-		}
 		/**
 			* [Summary].
 			*
@@ -50,6 +62,8 @@
 			*
 			* @return [type] [name] [description]
 		*/ 
+		
+		
 		public function getIncludables(){
 			
 			$includables = false;
@@ -172,53 +186,7 @@
 			}
 		}
 		
-		/**
-			* [Summary].
-			*
-			* [Description]
-			
-			* @param [Type] $[Name] [Argument description]
-			*
-			* @return [type] [name] [description]
-		*/ 
-		//file_name or abbreviation, is_verbatim, 
-		public function addJs()
-		{
-			$def = ["arg0" => null, "is_script_content" => false, "node" => null];
-			extract($this->prepareForExtraction($def, func_get_args()));
-			
-			$includables = $this->getIncludables();
-			
-			$is_local = isset($includables["js_local"][$arg0]);
-			$is_remote = isset($includables["js_remote"][$arg0]);
-			$is_file = substr($arg0, -3) == ".js";
-			
-			$file_name = false;
-			$content = "";
-			$atts = ["type" => "text/javascript"];
-			$node = (!$node ? $this->head : $node);
-			
-			if($is_local){
-				$file_name = $includables["js_local"][$arg0];
-			}
-			else if($is_remote){
-				$file_name = $includables["js_remote"][$arg0];
-			}
-			else if($is_file){
-				$file_name = $arg0;
-			}
-			else if($is_script_content){ 
-				$content = $arg0;
-			}
-			else {
-				throw new \Exception("Given argument to addJs() is neither valid abbreviation given in includables.ini OR a valid js-file OR actual script content ");
-			}
-			
-			if(!$is_script_content){
-				$atts["src"] = $file_name;
-			}
-			$this->add($node, "script", $content, $atts);
-		}
+		
 		/**
 			* [Summary].
 			*
@@ -385,6 +353,7 @@
 			$def = ["node" => null, "name" => null, "options" => array() , "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
+			$atts["name"] = $name;
 			$select = $this->add($node, "select", "", $atts);
 			$select_array = array();
 			foreach($options as $option_text => $option){
@@ -402,155 +371,302 @@
 				
 				$select_array[] = $this->add($select, "option", $option_text, $option_atts);
 			}
-			
 			return $select_array;
 		} 
 		
-		/*
-			option, p, 
-			pre, script, select, strong, style, sub, sup, table, tbody, td, textarea, th, thead, time, title, tr, ul
-		*/
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addSingleCss()
+		{
+			$def = ["arg0" => null, "is_css_content" => false, "node" => null];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$includables = $this->includables;
+			
+			$is_local = isset($includables["css_local"][$arg0]);
+			$is_remote = isset($includables["css_remote"][$arg0]);
+			$is_file = substr($arg0, -4) == ".css";
+			
+			$file_name = false;
+			$content = "";
+			$node = (!$node ? $this->head : $node);
+			
+			if($is_local){
+				$file_name = $includables["css_local"][$arg0];
+			}
+			else if($is_remote){
+				$file_name = $includables["css_remote"][$arg0];
+			}
+			else if($is_file){
+				$file_name = $arg0;
+			}
+			else if($is_css_content){ 
+				$content = $arg0;
+			}
+			else {
+				throw new \Exception("Given argument to addCss() is neither valid abbreviation given in includables.ini OR a valid css-file OR actual style content ");
+			}
+			
+			if(!$is_css_content){
+				$atts = ["rel" => "stylesheet", "type" => "text/css", "href" => $file_name];
+				$tag = "link";
+			}
+			else {
+				$atts = array();
+				$tag = "style";
+			}
+			$this->add($node, $tag, $content, $atts);
+		}
 		
 		/**
-			* SUMMARY OF qtag
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addCss()
+		{
+			$def = ["arg0" => null, "is_css_content" => false, "node" => null];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$css_array = array();
+			if(is_array($arg0)){
+				$css_array = $arg0;
+			}
+			else {
+				$css_array = [[$arg0, $is_css_content, $node]];
+			}
+			foreach($css_array as $single_css){
+				if(is_array($single_css)){
+					$single_arg0 = $single_css[0];
+					$single_is_css_content = (isset($single_css[1]) ? $single_css[1] : false);
+					$single_node = (isset($single_css[2]) ? $single_css[2] : null);
+				}
+				else {
+					$single_arg0 = $single_css;
+					$single_is_css_content = false;
+					$single_node = null;
+				}
+				$this->addSingleCss($single_arg0, $single_is_css_content, $single_node);
+			}
+		}
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		//file_name or abbreviation, is_verbatim, 
+		public function addSingleJs()
+		{
+			$def = ["arg0" => null, "is_script_content" => false, "node" => null];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$includables = $this->includables;
+			
+			$is_local = isset($includables["js_local"][$arg0]);
+			$is_remote = isset($includables["js_remote"][$arg0]);
+			$is_file = substr($arg0, -3) == ".js";
+			
+			$file_name = false;
+			$content = "";
+			$atts = ["type" => "text/javascript"];
+			$node = (!$node ? $this->head : $node);
+			
+			if($is_local){
+				$file_name = $includables["js_local"][$arg0];
+			}
+			else if($is_remote){
+				$file_name = $includables["js_remote"][$arg0];
+			}
+			else if($is_file){
+				$file_name = $arg0;
+			}
+			else if($is_script_content){ 
+				$content = $arg0;
+			}
+			else {
+				throw new \Exception("Given argument to addJs() is neither valid abbreviation given in includables.ini OR a valid js-file OR actual script content ");
+			}
+			
+			if(!$is_script_content){
+				$atts["src"] = $file_name;
+			}
+			$this->add($node, "script", $content, $atts);
+		}
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addJs()
+		{
+			$def = ["arg0" => null, "is_script_content" => false, "node" => null];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$js_array = array();
+			if(is_array($arg0)){
+				$js_array = $arg0;
+			}
+			else {
+				$js_array = [[$arg0, $is_script_content, $node]];
+			}
+			foreach($js_array as $single_js){
+				if(is_array($single_js)){
+					$single_arg0 = $single_js[0];
+					$single_is_script_content = (isset($single_js[1]) ? $single_js[1] : false);
+					$single_node = (isset($single_js[2]) ? $single_js[2] : null);
+				}
+				else {
+					$single_arg0 = $single_js;
+					$single_is_script_content = false;
+					$single_node = null;
+				}
+				$this->addSingleJs($single_arg0, $single_is_script_content, $single_node);
+			}
+		}
+		
+		/**
+			* SUMMARY OF addTable
 			*
 			* DESCRIPTION
 			*
-			* @param TYPE () ARGDESCRIPTION
+			* @param TYPE ($array, $id = "sortable", $class = "display stripe") ARGDESCRIPTION
 			*
 			* @return TYPE NAME DESCRIPTION
 		*/
-		public static function qtag()
+		public function addTable()
 		{
-			/* will create a html-tag and chose from a set of standard variables
-				// argument 1 has to be the type, the rest of the arguments will be interpreted according to the standard
-				specified in the switch-case
-			*/
-			$maxNumberOfArgs = 10;
+			$def = ["node" => null, "array" => null, "headers" => array(), "atts" => array(), "options" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
 			
-			$args =  func_get_args();
-			$arguments = $args;
-			$args = array(); // we want to preserve $args, but as an array with exactly $maxNumberOfArgs arguments
-			/* creates a number of variables called arg1, arg2, ..., arg9 (if $maxNumberOfArgs = 10)*/
-			for($i = 0; $i < $maxNumberOfArgs ; $i++){
-				$argname = "arg" . $i;
-				$$argname = array_shift($arguments);
-				$$argname = (is_null($$argname) ? FALSE : $$argname);
-				$args[] = $$argname;
+			$table = $this->add($node, "table", "", $atts);
+			
+			if(count($array) == 0 || count(reset($array)) == 0) {
+				throw new \Exception("Empty array given to addTable()");
 			}
-			$pseudoTag = ($arg0 ? $arg0 : "");
-			$tagName = $pseudoTag;
-			$atts = array();
-			$content = "";
-			$additionalText = "";
 			
-			switch($pseudoTag){
-				case "textinput":
-				$tagName = "input";
-				$atts["type"] = "text";
-				if($arg1){$atts["name"] = $arg1;}
-				if($arg2){$atts["placeholder"] = $arg2;}
-				if($arg3){$atts["class"] = $arg3;}
-				if($arg4){$atts["value"] = $arg4;}
-				if($arg5){$atts["id"] = $arg5;
-					if($arg6){
-						$additionalText = tag("label", array("for" => $arg4), $arg5);
-					}
-				}
-				break;
-				
-				case "meta":
-				if($arg1){
-					$atts = $arg1;
-				}
-				else {
-					$atts = array("http-equiv" => "Content-Type", "content" => "text/html; charset=UTF-8");
-				}
-				break;
-				
-				case "hidden":
-				$tagName = "input";
-				$atts[] = "hidden";
-				if($arg1){$atts["value"] = $arg1;}
-				if($arg2){$atts["name"] = $arg2;}
-				if($arg3){$atts["id"] = $arg3;}
-				
-				break;
-				
-				case "submit":
-				$tagName = "input";
-				$atts["type"] = "submit";
-				if($arg1){$atts["value"] = $arg1;}
-				break;
-				
-				case "checkbox":
-				$tagName = "input";
-				$atts["type"] = "checkbox";
-				if($arg1){
-				$atts["name"] = $arg1 . '[]';} //should be serealized
-				if($arg2){$atts["value"] = $arg2;}
-				if($arg3){$atts[] = "checked";}
-				
-				break;
-				
-				case "div":
-				if($arg1){$content = $arg1;}
-				if($arg2){$atts["class"] = $arg2;}
-				if($arg3){$atts["id"] = $arg3;}
-				break;
-				
-				case "nav":
-				$nav_args = array_slice($args, 1);
-				$navBarOutput = create_bootstrap_navbar($nav_args);
-				$content = $navBarOutput["content"];
-				$atts = $navBarOutput["attributes"];
-				break;
-				
-				case "a":
-				if($arg1){$content = $arg1;}
-				if($arg2){$atts["href"] = $arg2;}
-				if($arg3){$atts["class"] = $arg3;}
-				if($arg4){$atts["id"] = $arg4;}
-				break;
-				
-				case "uicon":
-				$tagName = "span";
-				$atts["class"] = "ui-icon ui-icon-" . $arg1;
-				if($arg2){$atts["id"] = $arg2;}
-				
-				break;
-				
-				case "fa": //font-awesome
-				$tagName = "i";
-				$atts["class"] = "fa fa-" . $arg1;
-				if($arg2){$atts["class"] .= " fa-" . $arg2;}  //size
-				if($arg3){$atts["id"] = $arg3;}
-				break;
-				
-				case "tabs":
-				$tab_args = array_slice($args, 1);
-				$tabOutput = create_bootstrap_tabs($tab_args);
-				$tagName = "div";
-				$content = $tabOutput["content"];
-				$atts = $tabOutput["attributes"];
-				break;
-				
-				default:
-				if($pseudoTag == ""){
-					return "ERROR: You must at least provide ONE argument to the function qtag()";
-				}
-				else {
-					if($arg1){$content = $arg1;}
-					if($arg2){$atts["class"] = $arg2;}
-					if($arg3){$atts["id"] = $arg3;}
-					
-				}
-				break;
-				
+			// if the first row has no keys, we won't need a header
+			if(count($headers) == count(reset($array))){
+				$col_names = $headers;
+			} 
+			else if(count($headers) > 0){
+				throw new \Exception("Number of headers given for addTable() should match number of columns in table");
 			}
-			return tag($tagName, $content, $atts) . $additionalText;
+			else {
+				$col_names = array_keys(reset($array));
+			}
 			
+			$all_numeric = count(array_filter($col_names, function($k){return !is_numeric($k);})) == 0;
+			array_walk($col_names, function(&$k){$k = (is_numeric($k)?"":$k);});
+			
+			if(!$all_numeric){
+				$header = $this->add($table, "thead");
+				$header_tr = $this->add($header, "tr");
+				foreach($col_names as $col_name){
+					$this->add($header_tr, "th", $col_name);
+				}
+			}
+			$tbody = $this->add($table, "tbody");
+			foreach($array as $row_key => $row){
+				$tr = $this->add($tbody, "tr");
+				foreach($row as $col_key => $cell){
+					$this->add($tr, "td", $cell);
+				}
+			}
+			return $table;
 		}
+		
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addTextarea()
+		{
+			$def = ["node" => null, "content" => "", "name" => "", "rows" => "4", "cols" => "50", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			if(is_array($content)){
+				$atts["placeholder"] = reset($content);
+				$content = "";
+			}
+			$atts["rows"] = $rows;
+			$atts["cols"] = $cols;
+			if($name != ""){
+				$atts["name"] = $name;
+			}
+			
+			$textarea = $this->add($node, "textarea", $content, $atts);
+			return $textarea;
+		} 
+		
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addFontAwesome()
+		{
+			
+			$def = ["node" => null, "icon_name" => null, "size" => "", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$class = "fa fa-" . $icon_name;
+			$class .= ($size != "" ? " fa-" . $size : "");
+			$class .= (isset($atts["class"]) ? " " . $class : "");
+			$atts["class"] = $class;
+			
+			$icon = $this->add($node, "i", "", $atts);
+			return $icon;
+		} 
+		
+		/**
+			* [Summary].
+			*
+			* [Description] See https://api.jqueryui.com/theming/icons/
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addUicon()
+		{
+			$def = ["node" => null, "icon_name" => null, "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$class = "ui-icon ui-icon-" . $icon_name;
+			$class .= (isset($atts["class"]) ? " " . $class : "");
+			$atts["class"] = $class;
+			
+			$icon = $this->add($node, "span", "", $atts);
+			return $icon;
+		} 
 		/**
 			* SUMMARY OF create_bootstrap_navbar
 			*
@@ -561,7 +677,7 @@
 			* @return TYPE NAME DESCRIPTION
 		*/
 		
-		public static function create_bootstrap_navbar($nav_args)
+		public function create_bootstrap_navbar()
 		{
 			/* will return an array with a the matching arguments for a bootstrap-navbar
 				the incoming arguments should be given as following
@@ -572,6 +688,10 @@
 				2: (string) id of the navbar
 				3: (array) header of the site given as a double
 			*/
+			
+			$def = ["node" => null, "icon_name" => null, "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
 			$type = $nav_args[0];
 			$links = $nav_args[1];
 			$id = $nav_args[2];
@@ -680,130 +800,4 @@
 			$resultArray = array("content" => $content, "attributes" => $attributes);
 			return $resultArray;
 		}
-		/**
-			* SUMMARY OF create_htmltable_from_array
-			*
-			* DESCRIPTION
-			*
-			* @param TYPE ($array, $id = "sortable", $class = "display stripe") ARGDESCRIPTION
-			*
-			* @return TYPE NAME DESCRIPTION
-		*/
-		public static function create_htmltable_from_array($array, $id = "sortable", $class = "display stripe")
-		{
-			
-			/* check for emtpy array */
-			$noRows = count($array) == 0;
-			$oneRowButNoContent = count($array) == 1 && count(reset($array)) == 0;
-			if($noRows || $oneRowButNoContent) {return "";}
-			
-			$colNames = array_keys(reset($array));
-			$html = '<table id="';
-			$html .= $id;
-			$html .= '" class="';
-			$html .= $class;
-			$html .= '"><thead>';
-			$html .= '<tr>';
-			foreach ($colNames as $colname) {
-				$html .= "<th>" . strtoupper($colname) . "</th>";
-			}
-			
-			$html .= "</tr>
-			</thead>
-			<tbody>";
-			foreach ($array as $rowIndex => $row) {
-				$html .= "<tr>";
-				foreach ($row as $colIndex => $cell) {
-					$html .= "<td>" . $cell . "</td>";
-				}
-				$html .= "</tr>";
-			}
-			$html .= "</tbody></table>";
-			
-			return $html;
-		}
-		/**
-			* SUMMARY OF echo_link_for
-			*
-			* DESCRIPTION
-			*
-			* @param TYPE ($url, $label = "", $class = "") ARGDESCRIPTION
-			*
-			* @return TYPE NAME DESCRIPTION
-		*/
-		public static function echo_link_for($url, $label = "", $class = "")
-		{
-			/* wrapper for "link_for" */
-			echo link_for($url, $label, $class);
-		}
-		/**
-			* SUMMARY OF link_for
-			*
-			* DESCRIPTION
-			*
-			* @param TYPE ($url, $label = "", $class = "") ARGDESCRIPTION
-			*
-			* @return TYPE NAME DESCRIPTION
-		*/
-		
-		public static function link_for($url, $label = "", $class = "")
-		{
-			/* wrapper to build links and the ability to define a class*/
-			$returnString = '<a href="' . $url . '" ';
-			if ($class != "") {
-				$returnString .= 'class="' . $class . '"';
-			}
-			$returnString .= '>';
-			if ($label == "") {
-				$returnString .= $url;
-			}
-			else {
-				$returnString .= $label;
-			}
-			$returnString .= "</a>";
-			
-			return $returnString;
-		}
-		/**
-			* SUMMARY OF create_html_from_csv
-			*
-			* DESCRIPTION
-			*
-			* @param TYPE ($csv) ARGDESCRIPTION
-			*
-			* @return TYPE NAME DESCRIPTION
-		*/
-		public static function create_html_from_csv($csv)
-		{
-			$array = Helper::csvstring_to_array($csv);
-			return Helper::create_html_from_array($array);
-		}
-		/**
-			* SUMMARY OF create_html_from_array
-			*
-			* DESCRIPTION
-			*
-			* @param TYPE ($array) ARGDESCRIPTION
-			*
-			* @return TYPE NAME DESCRIPTION
-		*/
-		
-		public static function create_html_from_array($array)
-		{
-			$col_row = Helper::count_col_row($array);
-			$cols = $col_row["col"];
-			$rows = $col_row["row"];
-			
-			$html = "<p><table border = '1'>";
-			for ($i = 0; $i < $rows; $i++) {
-				$html .= '<tr><td class="index">[' . $i . "]</td>";
-				for ($j = 0; $j < $cols; $j++) {
-					$html .= "<td>" . stripcslashes($array[$i][$j]) . "</td>";
-				}
-				$html .= "</tr>";
-			}
-			$html .= "</table></p>";
-			
-			return $html;
-		}
-	}																																																																																																						
+	}
