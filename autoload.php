@@ -1,13 +1,13 @@
 <?php 
 	
 	/**
-	* [Summary].
-	*
-	* [Description]
-	
-	* @param [Type] $[Name] [Argument description]
-	*
-	* @return [type] [name] [description]
+		* [Summary].
+		*
+		* [Description]
+		
+		* @param [Type] $[Name] [Argument description]
+		*
+		* @return [type] [name] [description]
 	*/ 
 	function update_all_from_repo(){
 		if(is_readable("config.ini") && is_readable("includables.ini")){
@@ -22,7 +22,7 @@
 					$file_variables = array_map("trim", explode(",", $repo_files[$file_shortcut]));
 					update_file_from_repo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
 				}
-				}
+			}
 		}
 	}
 	
@@ -37,7 +37,7 @@
 	*/ 
 	function inc($inclusionString, $return = FALSE){
 		$inclusionArray = array_map("trim", explode(",", $inclusionString));
-		$includables_with_types = get_includables_with_types();
+		$includables = getIncludables();
 		
 		foreach($inclusionArray as $inc){
 			$ext = pathinfo($inc, PATHINFO_EXTENSION);
@@ -49,34 +49,30 @@
 					$error = "The function inc() provided in autoload.php can only be used for php-files. You provided '." . $ext . "'";
 				}
 				else{ // e.g. "sql", a possible abbreviation given in includables.ini
-					if($includables_with_types != false){ // includables.ini does exist and creates no errors
-						if(!isset($includables_with_types[$inc])){
-							$error = "The function inc() was provided with a nonexisting abbreviation: " . $inc;
+					if($includables != false){ // includables.ini does exist and creates no errors
+						$is_repo = isset($includables["repo_files"][$inc]);
+						$is_php_local = isset($includables["php_local"][$inc]);
+						
+						if($is_repo){
+							$path = $includables["repo_files"][$inc];
+							$repo_parts = array_map("trim", explode(",", $path));
+							$path = pathinfo($repo_parts[3], PATHINFO_FILENAME) . ".php";
+							if(!is_readable($path)){
+								update_file_from_repo($repo_parts[3], $repo_parts[0], $repo_parts[1], $repo_parts[2]);
+							}
+							include($path);
 						}
-						else {
-							$type = $includables_with_types[$inc]["type"];
-							$path = $includables_with_types[$inc]["path"];
-							if($type == "repo_files"){
-								$repo_parts = array_map("trim", explode(",", $path));
-								$path = pathinfo($repo_parts[3], PATHINFO_FILENAME) . ".php";
-								if(!is_readable($path)){
-									update_file_from_repo($repo_parts[3], $repo_parts[0], $repo_parts[1], $repo_parts[2]);
-								}
-								include($path);
-							}
-							else if($type == "php_local"){
-								include($path);
-							} 
-							else { // e.g. "jquery"
-								$error = "The function inc() was provided with a valid abbreviation, but invalid filetype. Only php-files are valid. You provided .". $type;
-							}
+						else if($is_php_local){
+							$path = $includables["php_local"][$inc];
+							include($path);
+						} 
+						else { // e.g. "jquery"
+							$error = "The function inc() was provided with a nonexisting abbreviation (among php-files): " . $inc;
 						}
 					}
 					else { 
 						$error = "The function inc() was provided with an abbreviation, but no corresponding includables.ini within the same folder.";
 					}
-					
-					
 				}
 			}
 			if(isset($error)){
@@ -136,27 +132,24 @@
 		return ($diff < $age);
 	}
 	
-	function get_includables_with_types($file = "includables.ini"){
-		if(is_readable("includables.ini")){
+	function getIncludables($file = "includables.ini")
+	{
+		if(is_readable($file)){
 			$inc_ini_array = parse_ini_file("includables.ini", true);
-			$return_array = array();
+			$check_array = array();
 			
 			foreach($inc_ini_array as $type => $entries){
 				foreach($entries as $abbreviation => $filepath){
-					if(!isset($return_array[$abbreviation])){
-						
-						$return_array[$abbreviation]["type"] = $type;
-						$return_array[$abbreviation]["path"] = $filepath;
-					}
-					else {
-						throw new Exception("includables.ini has duplicate keys! Abbreviation could not be uniquely resolved. Duplicate key: " .  $abbreviation);
+					$check_array[$type . ":" . $abbreviation] = "";
+					if(isset($check_array[$abbreviation])){
+						throw new Exception("includables.ini has duplicate keys! Abbreviation could not be uniquely resolved. Duplicate key: " .  $key);
 						return false;
 					}
 				}
 			}
-			return $return_array;
+			return $inc_ini_array;
 		}
-		else {
+		else { //file not readable
 			return false;
 		}
 	}

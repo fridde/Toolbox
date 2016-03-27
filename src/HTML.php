@@ -25,11 +25,11 @@
 			$this->html = $this->add($this, 'html');
 			$this->head = $this->add($this->html, 'head');
 			$this->body = $this->add($this->html, "body");
-			
 			$meta_attributes = array("http-equiv" => "Content-Type", "content" => "text/html; charset=UTF-8");
 			$this->add($this->head, 'meta', "", $meta_attributes);
 			$this->add($this->head, 'title', $this->title);
 			$this->includables = $this->getIncludables();
+			
 		}
 		/**
 			* [Summary].
@@ -113,18 +113,15 @@
 			* @return [type] [name] [description]
 		*/ 
 		
-		public function add()
+		public function create()
 		{
-			/* $node, $tag, $content, $attributes
-			*/
-			$def = ["node" => null, "tag" => null, "content" => "", "atts" => array()];
+			$def = ["tag" => null, "content" => "", "atts" => array(), "return_as_array" => false];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
-			$element_array = array();
-			if(is_string($tag)){
+			$is_single_element = is_string($tag);
+			if($is_single_element){
 				$element_array = [[$tag, $content, $atts]];
 			} 
-			
 			else if(is_string(reset($tag))){
 				$element_array = [$tag];
 			}
@@ -135,38 +132,109 @@
 			}
 			
 			$return_array = array();
-			foreach($element_array as $key => $element){
+			foreach($element_array as $key => $element_parts){
 				
-				$tag = (isset($element["tag"]) ? $element["tag"] : $element[0]);
-				$content = (isset($element[1]) ? $element[1] : "");
-				$content = (isset($element["content"]) ? $element["content"] : $content);  // a value with a key takes precedence over a value that is in the right order
+				$tag = (isset($element_parts["tag"]) ? $element_parts["tag"] : $element_parts[0]);
+				$content = (isset($element_parts[1]) ? $element_parts[1] : "");
+				$content = (isset($element_parts["content"]) ? $element_parts["content"] : $content);  // a value with a key takes precedence over a value that is in the right order
 				$content = (in_array($tag, self::EMPTY_ELEMENTS) ? "" : $content); // if the tag belongs to the list of void/empty elements, the content is ignored
-				$atts = (isset($element[2]) ? $element[2] : array());
-				$atts = (isset($element["atts"]) ? $element["atts"] : $atts);
+				$atts = (isset($element_parts[2]) ? $element_parts[2] : array());
+				$atts = (isset($element_parts["atts"]) ? $element_parts["atts"] : $atts);
 				
 				if(!is_numeric($key)){
 					$atts["id"] = $key;
 				}
 				$element = $this->createElement($tag, $content);
 				
+				/* this part is to enable a short-hand notation where the first element of $atts (attribute array) is 
+					given as ["class", "id"]. In this case all other class- or id-attributes given in $atts
+				are overwritten. */
+				$first_att = reset($atts);
+				if(is_array($first_att)){
+					if(isset($first_att[0])){
+						$old_class = (isset($atts["class"]) ? $atts["class"] . " " : "");
+						$atts["class"] = $old_class . $first_att[0];
+					}
+					if(isset($first_att[1])){
+						$atts["id"] = $first_att[1];
+					}
+					array_shift($atts);
+				}
 				//adding attributes to the element
 				foreach($atts as $attribute_name => $attribute_value){
+					
 					if(is_numeric($attribute_name)){
 						$attribute = $this->createAttribute($attribute_value);
+						$element->appendChild($attribute);
 					} 
-					else {
+					else if($attribute_value != ""){
 						$attribute = $this->createAttribute($attribute_name);
 						$attribute->value = $attribute_value;
+						$element->appendChild($attribute);
 					}
-					$element->appendChild($attribute);
 				}
-				$return_array[$key] = $node->appendChild($element);
+				
+				$return_array[$key] = $element;
 			}
-			if(count($return_array) == 1){
-				return $return_array[0];
+			if($return_as_array){
+				return $return_array;
 			} 
-			return $return_array;
+			else {
+				return reset($return_array);
+			}
+			
 		}
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function add()
+		{
+			$def = ["node" => null, "tag" => null, "content" => "", "atts" => array(), "first" => false];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$element_array = $this->create($tag, $content, $atts, true);
+			$first_child = $node->firstChild;
+			$return_array = array();
+			
+			foreach($element_array as $id => $element){
+				if($first && isset($first_child)){
+					$return_array[$id] = $node->insertBefore($element, $first_child);
+				}
+				else {
+					$return_array[$id] = $node->appendChild($element);
+				}
+			}
+			if(count($return_array) > 1){
+				return $return_array;
+			}
+			else {
+				return reset($return_array);
+			}
+		}
+		
+		/**
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public function addFirst()
+		{
+			$def = ["node" => null, "tag" => null, "content" => "", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			return $this->add($node, $tag, $content, $atts, true);
+		}
+		
 		
 		
 		/**
@@ -199,7 +267,6 @@
 		
 		public function addLink()
 		{
-			
 			$def = ["node" => null, "adress" => "", "content" => "", "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
@@ -677,86 +744,75 @@
 			* @return TYPE NAME DESCRIPTION
 		*/
 		
-		public function create_bootstrap_navbar()
+		public function addBsNav()
 		{
 			/* will return an array with a the matching arguments for a bootstrap-navbar
 				the incoming arguments should be given as following
 				0: (string) type of navbar. Possible types: "" (for default), fixed (for fixed header)
-				1: (array) links: in the form of "Name to Show" => "link to lead to"
+				$param array link_array: in the form of "Name to Show" => "link to lead to"
 				If a menu-item should have a dropdown instead, build a recursive array, e.g. array("Homepage" => "index.html", "Topics" => array("Cars" => "cars.html", "Horses" => "horses.html"), "About me" => "about.html")
 				If your navbar should contain a left and right menu, the link-array should contain exactly two arrays with the keys given as LEFT and RIGHT
 				2: (string) id of the navbar
 				3: (array) header of the site given as a double
 			*/
 			
-			$def = ["node" => null, "icon_name" => null, "atts" => array()];
+			$def = ["link_array" => array(), "header" => array(), "type" => "fixed-top", "atts" => array(), "node" => $this->body, "first" => true];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
-			$type = $nav_args[0];
-			$links = $nav_args[1];
-			$id = $nav_args[2];
-			$headerArray = $nav_args[3];
-			$attributes = array("class" => "navbar");
-			if($id){$attributes["id"] = $id;}
+			$nav_type_classes = ["fixed-top" => "fixed-top"];
+			$nav_class = "navbar";
+			$nav_class .= (isset($nav_type_classes[$type]) ? " navbar-" . $nav_type_classes[$type] : "");
 			
-			switch($type){
-				case "fixed":
-				$attributes["class"] .= " navbar-default navbar-fixed-top";
-				break;
+			$atts["class"] = (isset($atts["class"]) ? $atts["class"] . " " . $nav_class : $nav_class);
+			
+			$nav = $this->add($node, "nav", "", $atts, $first);
+			$container = $this->add($nav, "div", "", ["class" => "container-fluid"]);
+			
+			if(count($header) == 1){
+				list($display_name, $link) = each($header);
+				$header = $this->add($container, "div", "", ["class" => "navbar-header"]);
+				$header_link = $this->add($header, "a", $display_name, ["class" => "navbar-brand", "href" => $link]);
+			}
+			
+			if(!(isset($link_array["LEFT"]) && isset($link_array["RIGHT"]))){
+				// e.g. [["text1" => "link1", "text2" => "link2"]]
+				if(count($link_array) == 1 && is_array(reset($link_array))){
+					$link_array = ["LEFT" => reset($link_array)];
+				}
+				// e.g.["text1" => "link1", "text2" => "link2"]
+				else {
+					$link_array = ["LEFT" => $link_array];
+				}
+			}
+			
+			foreach($link_array as $side => $linkList){
+				$ul_atts["class"] = "nav navbar-nav";
+				$ul_atts["class"] .= ($side == "RIGHT" ? " navbar-right" : "");
+				$ul = $this->add($container, "ul", "", $ul_atts);
 				
-				default:
-				$attributes["class"] .= " navbar-default";
-				break;
-			}
-			
-			$header = "";
-			if($headerArray){
-				$displayName = array_keys($headerArray);
-				$displayName = $displayName[0];
-				$link = $headerArray[$displayName];
-				$header .= tag("a", $displayName, array("href" => $link, "class" => "navbar-brand"));
-			}
-			$linkContent = array("LEFT" => "", "RIGHT" => "");
-			if(!(count($links) == 2 && isset($links["LEFT"]) && isset($links["RIGHT"]))){
-				$links = array("LEFT" => $links, "RIGHT" => array());
-			}
-			
-			foreach($links as $side => $linkList){
-				foreach($linkList as $showName => $link){
-					if(gettype($link) == "array"){
-						$dd_preText = tag("a", $showName . qtag("span", "" , "caret"), array("class" => "dropdown-toggle", "data-toggle"=> "dropdown", "href" => "#"));
-						$dd_menu = "";
-						foreach($link as $ddShowName => $dropdownListLink){
-							$a = qtag("a", $ddShowName, $dropdownListLink);
-							$l = tag("li", $a);
-							$dd_menu .= $l;
+				foreach($linkList as $show_name => $link){
+					if(is_array($link)){
+						$li = $this->add($ul, "li", "", ["class" => "dropdown"]);
+						$a = $this->addLink($li, "#", $show_name, ["class" => "dropdown-toggle", "data-toggle" => "dropdown"]);
+						$this->add($a, "span", "", ["class" => "caret"]);
+						$dropdown_ul = $this->add($li, "ul", "", ["class" => "dropdown-menu"]);
+						foreach($link as $dd_show_name => $dd_link){
+							$dd_li = $this->add($dropdown_ul, "li");
+							$this->addLink($dd_li, $dd_link, $dd_show_name);
 						}
-						$dd_list = qtag("ul", $dd_menu ,"dropdown-menu");
-						$l = tag("li", $dd_preText . $dd_list, "dropdown");
-						$linkContent[$side] .= $l;
 					}
 					else {
-						$a = qtag("a", $showName, $link);
-						$l = tag("li", $a);
-						$linkContent[$side] .= $l;
+						$li = $this->add($ul, "li");
+						$this->addLink($li, $link, $show_name);
 					}
 				}
 			}
 			
-			
-			$navbarContent = qtag("ul", $linkContent["LEFT"] , "nav navbar-nav");
-			if($linkContent["RIGHT"] != ""){
-				$navbarContent .= qtag("ul", $linkContent["RIGHT"], "nav navbar-nav navbar-right");
-			}
-			$div0_1 = qtag("div", $header, "navbar-header");
-			$div0_2 = qtag("div", $navbarContent);
-			$div0 = qtag("div", $div0_1 . $div0_2, "container-fluid");
-			$content = $div0;
-			$resultArray = array("content" => $content, "attributes" => $attributes);
-			return $resultArray;
-			
-			
+			return $nav;
 		}
+		
+		
+		
 		/**
 			* SUMMARY OF create_bootstrap_tabs
 			*
@@ -767,37 +823,42 @@
 			* @return TYPE NAME DESCRIPTION
 		*/
 		
-		public static function create_bootstrap_tabs($tab_args)
+		public function addBsTabs()
 		{
+			$def = ["node" => null, "tab_array" => array(), "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
 			
-			$type = $tab_args[0]; // yet unused
-			$tabContent = $tab_args[1];
-			$id = $tab_args[2];
-			$attributes = array("class" => "container");
-			if($id){$attributes["id"] = $id;}
+			/* we have to ensure that every tab has a unique id. this piece converts $tab_array from
+			["tab1_title", "tab2_title", "tab3_title"]
+			to
+			[["tab1_5fg", "tab1_title"][["tab2_5fg", "tab2_title"]][["tab3_5fg", "tab3_title"]]]*/
+			$tab_id_prefix = "tab_" . rand(0,999) . "_";
 			
-			list($content, $ul, $contentDiv) = array_fill(0,20,"");
+			array_unshift($atts, ["nav nav-tabs"]);
+			$ul = $this->add($node, "ul", "", $atts);
+			$tab_container = $this->add($node, "div", "", [["tab-content"]]);
+			$return_array = array();
+			
 			$i = 0;
-			$firstElement = get_element($tabContent);
-			foreach($tabContent as $showName => $text){
-				$i++;
-				$tab_id = "tab_id_" . $i;
-				$liAtts = array();
-				$contentElementAtts = array("id" => $tab_id, "class" => "tab-pane fade");
-				if($showName == $firstElement){
-					$liAtts["class"] = "active";
-					$contentElementAtts["class"] .= " in active";
+			foreach($tab_array as $tab_id_suffix => $tab_title){
+				$div_class = "tab-pane fade";
+				$li_class = "";
+				$tab_id_suffix = (is_numeric($tab_id_suffix) ? $i + 1 : $tab_id_suffix);
+				$id = $tab_id_prefix . $tab_id_suffix ;
+				$title = $tab_title;
+				if($i == 0){
+					$li_class .= "active";
+					$div_class .= " in active";
 				}
-				$li = tag("a", $showName, array("data-toggle" => "tab", "href" => "#" . $tab_id));
-				$ul .= tag("li", $li, $liAtts);
+				$li = $this->add($ul, "li", "", [[$li_class]]);
+				$a_atts = ["data-toggle" => "tab", "href" => "#" . $id];
+				$this->add($li, "a", $title, $a_atts);
 				
-				$contentDiv .= tag("div", $text, $contentElementAtts);
+				$return_array[$id] = $this->add($tab_container, "div", "", [[$div_class, $id]]);
+				$i++;
 			}
-			$content .= qtag("ul", $ul, "nav nav-tabs");
+			array_unshift($return_array, $tab_id_prefix);
 			
-			$content .= qtag("div", $contentDiv, "tab-content");
-			
-			$resultArray = array("content" => $content, "attributes" => $attributes);
-			return $resultArray;
+			return $return_array;
 		}
 	}
