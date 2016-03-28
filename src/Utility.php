@@ -285,7 +285,7 @@
 			$str = "";
 			foreach($array as $k => $v){
 				if(is_array($v)){
-					$str .= str_repeat(" ",$i*2)."[$k]" . PHP_EOL; 
+					$str .= str_repeat(" ",$i*2)."[$k]" . str_repeat(PHP_EOL, 2); 
 					$str .= self::writeIniFile($v, "", $i+1);
 				}
 				else {
