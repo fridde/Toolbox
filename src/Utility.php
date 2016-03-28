@@ -14,6 +14,8 @@
 			* @return TYPE NAME DESCRIPTION
 		*/
 		
+		public $ini_file = "testfile.ini";
+		
 		public static function redirect($to)
 		{
 			@session_write_close();
@@ -54,37 +56,9 @@
 			
 			return $fileArray;
 		}
+		
 		/**
-			* SUMMARY OF echop
-			*
-			* DESCRIPTION
-			*
-			* @param TYPE ($array) ARGDESCRIPTION
-			*
-			* @return TYPE NAME DESCRIPTION
-		*/
-		public static function echop($array)
-		{
-			/* extends echo by nicely printing arrays*/
-			if (gettype($array) != "array") {
-				echo "<br>" . $array . "<br>";
-			}
-			else {
-				
-				foreach ($array as $key => $element) {
-					if (gettype($element) == "string") {
-						echo $key . " => " . $element . "<br>";
-					}
-					else {
-						echo $key . " => ";
-						echo print_r($element) . "<br>";
-					}
-				}
-				echo "<br>";
-			}
-		}
-		/**
-			* SUMMARY OF curPageURL
+			* Returns the current url of the page.
 			*
 			* DESCRIPTION
 			*
@@ -98,90 +72,30 @@
 			if (isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {
 				$pageURL .= "s";
 			}
-			$pageURL .= "://";
+			$pageURL .= "://" . $_SERVER["SERVER_NAME"];
 			if ($_SERVER["SERVER_PORT"] != "80") {
-				$pageURL .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"];
+				$pageURL .= ":" . $_SERVER["SERVER_PORT"]; 
 			}
-			else {
-				$pageURL .= $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"];
-			}
+			$pageURL .= $_SERVER["REQUEST_URI"];
 			return $pageURL;
 		}
 		/**
-			* SUMMARY OF print_r2
+			* [Summary].
 			*
-			* DESCRIPTION
-			*
-			* @param TYPE ($Array, $Name = '', $size = 2, $depth = '', $Tab = '', $Sub = '', $c = 0) ARGDESCRIPTION
-			*
-			* @return TYPE NAME DESCRIPTION
-		*/
-		public static function print_r2($Array, $Name = '', $size = 2, $depth = '', $Tab = '', $Sub = '', $c = 0)
-		{
-			/** wrote to display with large multi dimensional arrays, // Dave Husk , easyphpscripts.com
-				* print_r2($Array,'Name_for_array'(optional));
-			*/
-			if (!is_array($Array))
-			return (FALSE);
-			if ($Name && $depth == '')
-			$Name1 = '$' . $Name;
-			$CR = "\r\n";
-			if ($c == 0) {
-				$display = '';
-				//defualt to open at start
-				echo $CR . '<script>function poke_that_array(dir){x=document.getElementById(dir);if(x.style.display == "none")
-				{x.style.display = "";}else{x.style.display = "none";}}</script>' . $CR;
-			}
-			else
-			$display = 'none';
-			$BR = '<br>';
-			$Red = '<font color="#DD0000" size=' . $size . '>';
-			$Green = '<font color="#007700" size=' . $size . '>';
-			$Blue = '<font color="#0000BB" size=' . $size . '>';
-			$Black = '<font color="#000000" size=' . $size . '>';
-			$Orange = '<font color="#FF9900" size=' . $size . '>';
-			$Font_end = '</font>';
-			$Left = $Green . '' . '[' . $Font_end;
-			$Right = $Green . ']' . $Font_end;
-			$At = $Black . ' => ' . $Font_end;
-			$lSub = $Sub;
-			$c++;
-			foreach ($Array as $Key => $Val) {
-				if ($Key) { $output = 1;
-					$rKey = rand(100, 10000);
-					echo $CR . '<div><a name="print_r2' . $rKey . $c . '">' . $Tab . '' . $Green . $Font_end . ' ' . $At . '<a href="#print_r2' . $rKey . $c . '" onClick=poke_that_array("print_r2' . $rKey . $c . '")><font  size=' . $size . '>Array(' . $Sub . '</font></a>' . $CR . '<div style="display:' . $display . ';" id="print_r2' . $rKey . $c . '">' . $CR;
-					break;
-				}
-			}
-			foreach ($Array as $Key => $Val) { $c++;
-				$Type = gettype($Val);
-				$q = '';
-				if (is_array($Array[$Key]))
-				$Sub = $Orange . ' /** [' . @htmlentities($Key) . '] */' . $Font_end;
-				if (!is_numeric($Key))
-				$q = '"';
-				if (!is_numeric($Val) & !is_array($Val) & $Type != 'boolean')
-				$Val = '"' . $Val . '"';
-				if ($Type == 'NULL')
-				$Val = 'NULL';
-				if ($Type == 'boolean')
-				$Val = ($Val == 1) ? 'TRUE' : 'FALSE';
-				if (!is_array($Val)) { $At = $Blue . ' = ' . $Font_end;
-					$e = ';';
-				}
-				if (is_array($Array[$Key]))
-				$At = '';
-				echo $CR . $Tab . (chr(9)) . '&nbsp;&nbsp;' . $depth . $Left . $Blue . $q . @htmlentities($Key) . $q . $Font_end . $Right . $At . $Red . @htmlentities($Val) . $Font_end . $e . $BR . $CR;
-				if ($depth == '')
-				unset($lSub);
-				$e = '';
-				if (is_array($Array[$Key]))
-				print_r2($Array[$Key], $Name, $size, $depth . $Left . $Blue . $q . @htmlentities($Key) . $q . $Font_end . $Right, (chr(9)) . '&nbsp;&nbsp;&nbsp;' . $Tab, $Sub, $c);
-			}
-			if ($output)
-			echo $CR . '</div>' . $Tab . '<font  size=' . $size . '>)' . $lSub . '</font></div>' . $CR;
+			* [Description]
 			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/ 
+		public static function print_r2($val)
+		{
+			echo '<pre>';
+			var_export($val);
+			echo  '</pre>';
 		}
+		
+		
 		/**
 			* SUMMARY OF csvstring_to_array
 			*
@@ -360,21 +274,34 @@
 			*
 			* @return TYPE NAME DESCRIPTION
 		*/
-		public static function write_to_config($configArray)
+		function writeIniFile()
 		{
-			$filename = "config.ini";
-			$text = "";
-			foreach ($configArray as $key => $value) {
-				if (gettype($value) == "array") {
-					$value = implode(",", $value);
-				}
-				$text .= $key . " = " . $value . "\r\n";
-			}
+			// $array, $file, $i = 0
+			$args = func_get_args();
+			$array = $args[0];
+			$file = (isset($args[1]) ? $args[1] : self::$ini_file);
+			$i = (isset($args[2]) ? $args[2] : 0);
 			
-			$fh = fopen($filename, "w") or die("Could not open log file.");
-			fwrite($fh, $text) or die("Could not write file!");
-			fclose($fh);
+			$str = "";
+			foreach($array as $k => $v){
+				if(is_array($v)){
+					$str .= str_repeat(" ",$i*2)."[$k]" . PHP_EOL; 
+					$str .= self::writeIniFile($v, "", $i+1);
+				}
+				else {
+					$str .= str_repeat(" ", $i*2). "$k = $v" . PHP_EOL; 
+				}
+			}
+			if($file)
+			{
+				return file_put_contents($file, $str);
+			}
+			else {
+				return $str;
+			}
 		}
+		
+		
 		/**
 			* SUMMARY OF find_most_similar
 			*
@@ -498,28 +425,7 @@
 			
 			return array("deg"=>$deg,"min"=>$min,"sec"=>$sec);
 		}
-		/**
-			* SUMMARY OF array_walk_values
-			*
-			* DESCRIPTION
-			*
-			* @param TYPE ($array, $function) ARGDESCRIPTION
-			*
-			* @return TYPE NAME DESCRIPTION
-		*/
 		
-		public static function array_walk_values($array, $function)
-		{
-			/* will return an array where a function that accepts a single parameter has been applied
-			it's practically a simplification of array_walk. Note that it returns a value!*/
-			
-			$returnArray = array();
-			foreach($array as $index => $value){
-				$returnArray[$index] = $function($value);
-			}
-			
-			return $returnArray;
-		}
 		/**
 			* SUMMARY OF generateRandomString
 			*
@@ -534,52 +440,36 @@
 			$characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 			$charactersLength = strlen($characters);
 			$randomString = '';
-			for ($i = 0; $i < $length; $i++) {
-				$randomString .= $characters[rand(0, $charactersLength - 1)];
+			foreach(range(0,$length) as $i) {
+				$randomString .= $characters[mt_rand(0, $charactersLength - 1)];
 			}
 			return $randomString;
 		}
 		/**
-			* SUMMARY OF extract_request($translationArray = array
+			* Put a list of variables from $_REQUEST into the global scope
 			*
 			* DESCRIPTION
 			*
-			* @param TYPE (), $prefix = "req_") ARGDESCRIPTION
+			* @param array $translation_array
+			* 
 			*
 			* @return TYPE NAME DESCRIPTION
 		*/
-		public static function extract_request($translationArray = array(), $prefix = "req_")
-		{
-			global $_REQUEST;
-			$returnArray = array();
-			
-			$newTranslationArray = array();
-			foreach($translationArray as $key => $value){
-				if(gettype($key) == "integer"){
-					$newTranslationArray[$value] = $value;
-				}
-				else {
-					$newTranslationArray[$key] = $value;
-				}
+		public static function extractRequest()
+		{	
+			// translation_array, prefix
+			$args = func_get_args();
+			if($args === true) {
+				$translation_array = array_keys($_REQUEST);
 			}
-			$translationArray = $newTranslationArray;
-			
-			foreach($_REQUEST as $key => $value){
-				if(isset($translationArray[$key])){
-					$varName = $translationArray[$key];
-				}
-				else {
-					$varName = $prefix . $key;
-				}
-				$returnArray[$varName] = $value;
-			}
-			foreach($translationArray as $key => $value){
-				if(!isset($returnArray[$value])){
-					$returnArray[$value] = FALSE;
-				}
+			else {
+				$translation_array = $args[0];
 			}
 			
-			return $returnArray;
-			
+			$p = (isset($args[1]) ? $args[1] : "");
+			$dont_translate = array_filter($translation_array, "is_numeric" , ARRAY_FILTER_USE_KEY);
+			array_walk($dont_translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$v];}, $p);
+			$translate = array_diff_assoc($translation_array, $dont_translate);
+			array_walk($translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$k];}, $p);
 		}
-	}	
+	}																	

@@ -1,0 +1,12 @@
+[Connection_Details]
+db_host: The sql host of your database
+db_name: The name of your database
+db_username: The username entering your database
+db_password: The password used by the user
+
+[autoload]
+update: fill the variable "update" with all the file-abbreviations from "updatable" that you want to have synced
+	use the key given in the chapter [repo_files] in includables.ini, for example "array,cook,html,sql,util". 
+	Use commas to seperate the abbreviations
+cache_time: time in minutes that files are NOT updated (to avoid too frequent and unnecessary updating)
+	

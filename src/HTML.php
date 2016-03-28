@@ -9,6 +9,7 @@
 		public $head;
 		public $body;
 		const EMPTY_ELEMENTS = ["area","base","br","col","command","embed","hr","img","input","link","meta","param","source"];
+		const STD_CSS = "stylesheet.css";
 		public $includables;
 		
 		function __construct ()
@@ -29,7 +30,9 @@
 			$this->add($this->head, 'meta', "", $meta_attributes);
 			$this->add($this->head, 'title', $this->title);
 			$this->includables = $this->getIncludables();
-			
+			if(is_readable(self::STD_CSS)) {
+				$this->addCss(self::STD_CSS);
+			}
 		}
 		/**
 			* [Summary].
@@ -829,8 +832,8 @@
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
 			/* we have to ensure that every tab has a unique id. this piece converts $tab_array from
-			["tab1_title", "tab2_title", "tab3_title"]
-			to
+				["tab1_title", "tab2_title", "tab3_title"]
+				to
 			[["tab1_5fg", "tab1_title"][["tab2_5fg", "tab2_title"]][["tab3_5fg", "tab3_title"]]]*/
 			$tab_id_prefix = "tab_" . rand(0,999) . "_";
 			

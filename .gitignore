@@ -1,5 +1,6 @@
 sandbox.php
 config.ini
+config_backup.ini
 COMMIT_EDITMSG
 vendor/
-docs/
+test.php
