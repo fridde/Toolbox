@@ -1,5 +1,14 @@
 <?php 
 	
+	function activateDebug()
+	{
+		updateAllFromRepo();
+		error_reporting(E_ALL);
+		ini_set('display_errors', '1');
+		function print_r2($var){
+			echo "<pre>"; print_r($var); echo "</pre>";
+		}
+	}
 	/**
 		* [Summary].
 		*
@@ -9,7 +18,7 @@
 		*
 		* @return [type] [name] [description]
 	*/ 
-	function update_all_from_repo(){
+	function updateAllFromRepo(){
 		if(is_readable("config.ini") && is_readable("includables.ini")){
 			$config_array = parse_ini_file("config.ini", true);
 			$repo_files = parse_ini_file("includables.ini", true);
@@ -20,7 +29,7 @@
 				
 				foreach($files_to_update as $file_shortcut){
 					$file_variables = array_map("trim", explode(",", $repo_files[$file_shortcut]));
-					update_file_from_repo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
+					updateFileFromRepo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
 				}
 			}
 		}
@@ -81,7 +90,7 @@
 		}
 	}
 	
-	function update_file_from_repo($file, $user, $repo, $folder = "src"){
+	function updateFileFromRepo($file, $user, $repo, $folder = "src"){
 		
 		$local_file_name = "";
 		$url = "https://raw.githubusercontent.com/";
@@ -89,6 +98,9 @@
 		if($folder != ""){
 			$url .= $folder . "/";
 			$local_file_name .= $folder . "/";
+			if (!file_exists($folder)) {
+				mkdir($folder, 0777, true);
+			}
 		}
 		$url .= $file;
 		$local_file_name .= $file;
@@ -122,7 +134,7 @@
 		*
 		* @return [type] [name] [description]
 	*/ 
-	function is_younger_than($time, $age, $unit = "s"){
+	function isYoungerThan($time, $age, $unit = "s"){
 		
 		$conversion_factors = array("s" => 1, "min" => 60, "h" => 3600, "d" => 86400);
 		
