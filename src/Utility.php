@@ -343,8 +343,16 @@
 			* @return TYPE NAME DESCRIPTION
 		*/
 		
-		public static function logg($data, $infoText = "", $filename = "logg.txt")
+		public static function logg($data, $infoText = "", $filename = "toolbox.log")
 		{
+			$debug_info = array_reverse(debug_backtrace());
+			$chainFunctions = function($p,$n){
+				$class = (isset($n["class"]) ? "(". $n["class"] . ")" : "");
+				$p.='->' . $class . $n['function'] . ":" . $n["line"];
+				return $p;
+			};
+			$calling_functions = ltrim(array_reduce($debug_info, $chainFunctions), "->");
+			$file = pathinfo(reset($debug_info)["file"], PATHINFO_BASENAME);
 			
 			$string = "\n--------------------------------\n";
 			$string .= date("Y-m-d H:i:s") . "\n";
@@ -360,7 +368,14 @@
 			}
 			$string .= "\n----------------------------\n";
 			
-			file_put_contents($filename, $string, FILE_APPEND);
+				//echo "<pre>";
+				//echo  . "<br>";
+				self::print_r2($calling_functions);
+				self::print_r2($file);
+				//echo $string;
+				//echo "</pre>";
+				//file_put_contents($filename, $string, FILE_APPEND);
+			
 		}
 		/**
 			* SUMMARY OF activate_all_errors
@@ -472,4 +487,4 @@
 			$translate = array_diff_assoc($translation_array, $dont_translate);
 			array_walk($translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$k];}, $p);
 		}
-	}																	
+	}																		

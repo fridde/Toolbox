@@ -9,6 +9,7 @@
 			echo "<pre>"; print_r($var); echo "</pre>";
 		}
 	}
+	
 	/**
 		* [Summary].
 		*
@@ -18,17 +19,19 @@
 		*
 		* @return [type] [name] [description]
 	*/ 
-	function updateAllFromRepo(){
+	
+	function updateAllFromRepo()
+	{
 		if(is_readable("config.ini") && is_readable("includables.ini")){
 			$config_array = parse_ini_file("config.ini", true);
 			$repo_files = parse_ini_file("includables.ini", true);
 			$repo_files = $repo_files["repo_files"];
 			
-			if(isset($config_array["autoload"]["update"])){
-				$files_to_update = array_map("trim", explode(",", $config_array["autoload"]["update"]));
+			if(isset($config_array["autoload"]["update"]) && trim($config_array["autoload"]["update"]) != ""){
+				$files_to_update = array_walk(explode(",", $config_array["autoload"]["update"]), "trim");
 				
 				foreach($files_to_update as $file_shortcut){
-					$file_variables = array_map("trim", explode(",", $repo_files[$file_shortcut]));
+					$file_variables = array_walk(explode(",", $repo_files[$file_shortcut]), "trim");
 					updateFileFromRepo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
 				}
 			}
@@ -43,7 +46,8 @@
 		* @param [Type] $[Name] [Argument description]
 		*
 		* @return [type] [name] [description]
-	*/ 
+	*/
+	
 	function inc($inclusionString, $return = FALSE){
 		$inclusionArray = array_map("trim", explode(",", $inclusionString));
 		$includables = getIncludables();
@@ -67,7 +71,7 @@
 							$repo_parts = array_map("trim", explode(",", $path));
 							$path = pathinfo($repo_parts[3], PATHINFO_FILENAME) . ".php";
 							if(!is_readable($path)){
-								update_file_from_repo($repo_parts[3], $repo_parts[0], $repo_parts[1], $repo_parts[2]);
+								updateFileFromRepo($repo_parts[3], $repo_parts[0], $repo_parts[1], $repo_parts[2]);
 							}
 							include($path);
 						}
@@ -133,7 +137,8 @@
 		* @param [Type] $[Name] [Argument description]
 		*
 		* @return [type] [name] [description]
-	*/ 
+	*/
+	
 	function isYoungerThan($time, $age, $unit = "s"){
 		
 		$conversion_factors = array("s" => 1, "min" => 60, "h" => 3600, "d" => 86400);
@@ -165,3 +170,4 @@
 			return false;
 		}
 	}
+				
