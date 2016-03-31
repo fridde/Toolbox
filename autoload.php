@@ -28,10 +28,12 @@
 			$repo_files = $repo_files["repo_files"];
 			
 			if(isset($config_array["autoload"]["update"]) && trim($config_array["autoload"]["update"]) != ""){
-				$files_to_update = array_walk(explode(",", $config_array["autoload"]["update"]), "trim");
+				$files_to_update = explode(",", $config_array["autoload"]["update"]);
+				array_walk($files_to_update, "trim");
 				
 				foreach($files_to_update as $file_shortcut){
-					$file_variables = array_walk(explode(",", $repo_files[$file_shortcut]), "trim");
+					$file_variables = explode(",", $repo_files[$file_shortcut]);
+					array_walk($file_variables, "trim");
 					updateFileFromRepo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
 				}
 			}
@@ -170,4 +172,3 @@
 			return false;
 		}
 	}
-				
