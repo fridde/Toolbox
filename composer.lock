@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "65c50200ad0d78c64489b0aa3cfedb94",
-    "content-hash": "7c566ef31580f98a6714f23975c59cea",
+    "hash": "60aa50b3bdc7a2a7a569b5aedeaabe5e",
+    "content-hash": "24cd3c30b968c11846dd368d53a25834",
     "packages": [
         {
             "name": "drewm/mailchimp-api",
@@ -158,7 +158,7 @@
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pear/Config_Lite/zipball/f4e4226957402451789a63cd86337b0737dcce42",
+                "url": "https://api.github.com/repos/pear/Config_Lite/zipball/692c9fda3339ba4a214ed7ac63f2bde75f31c31c",
                 "reference": "f4e4226957402451789a63cd86337b0737dcce42",
                 "shasum": ""
             },
@@ -188,6 +188,60 @@
             "description": "Lightweight package for ini style configuration/settings text files",
             "homepage": "http://pear.php.net/package/Config_Lite",
             "time": "2015-10-07 18:38:02"
+        },
+        {
+            "name": "phpmailer/phpmailer",
+            "version": "5.4.x-dev",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/PHPMailer/PHPMailer.git",
+                "reference": "a9054a5d6158ff97fc51b8aa15528ede973b2f89"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/PHPMailer/PHPMailer/zipball/a9054a5d6158ff97fc51b8aa15528ede973b2f89",
+                "reference": "a9054a5d6158ff97fc51b8aa15528ede973b2f89",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4.0"
+            },
+            "require-dev": {
+                "phpdocumentor/phpdocumentor": "2.*",
+                "phpunit/phpunit": "4.*"
+            },
+            "suggest": {
+                "league/oauth2-client": "Needed for XOAUTH2 authentication"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PHPMailer\\PHPMailer\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL-2.1"
+            ],
+            "authors": [
+                {
+                    "name": "Jim Jagielski",
+                    "email": "jimjag@gmail.com"
+                },
+                {
+                    "name": "Marcus Bointon",
+                    "email": "phpmailer@synchromedia.co.uk"
+                },
+                {
+                    "name": "Andy Prevost",
+                    "email": "codeworxtech@users.sourceforge.net"
+                },
+                {
+                    "name": "Brent R. Matzelle"
+                }
+            ],
+            "description": "PHPMailer is a full-featured email creation and transfer class for PHP",
+            "time": "2016-03-16 08:49:28"
         }
     ],
     "packages-dev": [],

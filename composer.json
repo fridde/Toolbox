@@ -12,7 +12,8 @@
         "drewm/mailchimp-api": "^2.1",
         "erusev/parsedown": "^1.6",
         "pear/config_lite": "dev-master",
-        "filp/whoops": "^2.1"
+        "filp/whoops": "^2.1",
+        "phpmailer/phpmailer": "^5.2"
     },
 	"autoload": {
         "psr-4": { "Fridde\\": "src/" }
