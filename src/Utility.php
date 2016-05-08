@@ -2,7 +2,8 @@
 	
 	namespace Fridde;
 	
-	class Utility{
+	class Utility
+	{
 		
 		/**
 			* SUMMARY OF redirect
@@ -88,11 +89,15 @@
 			*
 			* @return [type] [name] [description]
 		*/ 
-		public static function print_r2($val)
+		public static function print_r2($val, $return = false)
 		{
-			echo '<pre>';
-			var_export($val);
-			echo  '</pre>';
+			if($return){
+				$r = var_export($val, true);
+				return $r;
+			}
+			else {
+				echo '<pre>' . var_export($val, true) . '</pre>';
+			}
 		}
 		
 		
@@ -354,27 +359,25 @@
 			$calling_functions = ltrim(array_reduce($debug_info, $chainFunctions), "->");
 			$file = pathinfo(reset($debug_info)["file"], PATHINFO_BASENAME);
 			
-			$string = "\n--------------------------------\n";
-			$string .= date("Y-m-d H:i:s") . "\n";
-			$string .= "####" . $infoText;
+			$string = "\n\n####\n--------------------------------\n";
+			$string .= date("Y-m-d H:i:s");
+			$string .= ($infoText != "") ? "\n" . $infoText : "" ;
 			$string .= "\n--------------------------------\n";
 			
 			if (is_string($data)) {
 				$string .= $data;
-				} elseif (is_array($data)) {
-				$string .= print_r($data, TRUE);
-				} else {
-				$string .= var_export($data, TRUE);
+			} 
+			else if (is_array($data)) {
+				$string .= print_r($data, true);
+			} 
+			else {
+				$string .= var_export($data, true);
 			}
 			$string .= "\n----------------------------\n";
+			$string .= "Calling stack: " . $calling_functions . "\n"; 
+			$string .= $file . " produced this log entry";
 			
-				//echo "<pre>";
-				//echo  . "<br>";
-				self::print_r2($calling_functions);
-				self::print_r2($file);
-				//echo $string;
-				//echo "</pre>";
-				//file_put_contents($filename, $string, FILE_APPEND);
+			file_put_contents($filename, $string, FILE_APPEND);
 			
 		}
 		/**
@@ -474,17 +477,17 @@
 		{	
 			// translation_array, prefix
 			$args = func_get_args();
-			if($args === true) {
+			if(count($args) == 0) {
 				$translation_array = array_keys($_REQUEST);
 			}
 			else {
 				$translation_array = $args[0];
 			}
 			
-			$p = (isset($args[1]) ? $args[1] : "");
+			$p = (isset($args[1])) ? $args[1] : "";
 			$dont_translate = array_filter($translation_array, "is_numeric" , ARRAY_FILTER_USE_KEY);
 			array_walk($dont_translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$v];}, $p);
 			$translate = array_diff_assoc($translation_array, $dont_translate);
 			array_walk($translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$k];}, $p);
 		}
-	}																		
+	}																						

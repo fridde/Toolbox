@@ -2,7 +2,8 @@
 	
 	namespace Fridde;
 	
-	class HTML extends \DOMDocument{
+	class HTML extends \DOMDocument
+	{
 		
 		private $html;
 		public $title;

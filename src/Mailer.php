@@ -2,8 +2,8 @@
 	
 	namespace Fridde;
 	
-	class Mailer extends \PHPMailer\PHPMailer\PHPMailer{
-		
+	class Mailer extends \PHPMailer\PHPMailer\PHPMailer
+	{
 		private $configuration;
 		public $configuration_file = "config.ini";
 		public $smtp_settings_index = "smtp_settings";

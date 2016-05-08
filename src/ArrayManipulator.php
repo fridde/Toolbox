@@ -596,7 +596,8 @@
 		return TRUE;
 	}
 	/**
-		* SUMMARY OF count_col_row
+		* will return the number of rows(number of arrays in $array)
+		* and columns (length of the longest array within $array)
 		*
 		* DESCRIPTION
 		*
@@ -604,20 +605,11 @@
 		*
 		* @return TYPE NAME DESCRIPTION
 	*/
-	function count_col_row($array)
+	function countColRow($array)
 	{
-		/* will return the number of rows(number of arrays in $array)
-		* and columns (length of the longest array within $array)*/
 		$rows = count($array);
-		$cols = 0;
-		foreach ($array as $currentRow) {
-			$cols = max($cols, count($currentRow));
-		}
-		
-		return array(
-		"col" => $cols,
-		"row" => $rows
-		);
+		$cols = max(array_map('count', $array));
+		return [$cols, $rows];
 	}
 	/**
 		* SUMMARY OF fill_array

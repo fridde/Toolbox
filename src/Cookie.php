@@ -2,7 +2,8 @@
 	
 	namespace Fridde;
 	
-	class Cookie{
+	class Cookie
+	{
 		
 		/**
 		* Build a single cookie value from several variables.

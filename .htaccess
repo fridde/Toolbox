@@ -1,0 +1,6 @@
+<IfModule mod_rewrite.c>  
+Options +FollowSymLinks 
+Options +Indexes 
+RewriteEngine On 
+RewriteRule ^db/(.*)$ api.php?r=$1[L]
+</IfModule>

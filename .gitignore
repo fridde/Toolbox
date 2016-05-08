@@ -3,5 +3,7 @@ config.ini
 COMMIT_EDITMSG
 vendor/
 test_*
+test.php
 *.backup
 *.log
+composer.lock
