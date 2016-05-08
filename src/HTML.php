@@ -882,7 +882,7 @@
 			$possible_options = ["title" => "", "id" => "login_modal", "button_texts" => ["Close", "Save changes"]];
 			$options = array_merge($possible_options, $options);
 			
-			$modal = $this->add($node, "div", "", [["modal", $options["id"]], "tabindex" => "-1", "role" => "dialog"]);
+			$modal = $this->add($node, "div", "", [["modal fade", $options["id"]], "tabindex" => "-1", "role" => "dialog", "aria-hidden" => "true"]);
 			$dialog = $this->add($modal, "div", "", [["modal-dialog"], "role" => "document"]);
 			$content = $this->add($dialog, "div", "", [["modal-content"]]);
 			$header = $this->add($content, "div", "", [["modal-header"]]);
@@ -890,7 +890,7 @@
 			$footer = $this->add($content, "div", "", [["modal-footer"]]);
 			
 			$close_button = $this->add($header, "button", "", [["close"], "data-dismiss" => "modal", "aria-label" => "Close"]);
-			$this->add($close_button, "span", "&times;");
+			$this->add($close_button, "span", "&times;", ["aria-hidden" => "true"]);
 			$this->add($header, "h4", $options["title"], [["modal-title"]]);
 			
 			$this->add($footer, "button", $options["button_texts"][0], [["btn btn-secondary"], "data-dismiss" => "modal"]);
