@@ -34,7 +34,7 @@
 				
 				foreach($files_to_update as $file_shortcut){
 					$file_variables = explode(",", $repo_files[$file_shortcut]);
-					array_walk($file_variables, "trim");
+					$file_variables = array_map($file_variables, "trim");
 					updateFileFromRepo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
 				}
 			}
