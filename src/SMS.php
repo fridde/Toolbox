@@ -190,7 +190,7 @@
 			$string .= $data;
 		} 
 		else {
-			$string .= print_r2($data, true);
+			$string .= print_r($data, true);
 		}
 		$string .= "\n----------------------------\n";
 		$string .= "Calling stack: " . $calling_functions . "\n"; 

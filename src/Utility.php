@@ -468,23 +468,23 @@
 			*
 			* DESCRIPTION
 			*
-			* @param array $translation_array
+			* @param array translation_array, prefix
 			* 
 			*
 			* @return TYPE NAME DESCRIPTION
 		*/
 		public static function extractRequest()
 		{	
-			// translation_array, prefix
+			// arguments: translation_array, prefix
 			$args = func_get_args();
-			if(count($args) == 0) {
-				$translation_array = array_keys($_REQUEST);
+			if(count($args) == 0 || is_null($args[0])) {
+				$translation_array = array_keys($_REQUEST); // i.e. all elements of $_REQUEST are put into the global scope. Use with caution!
 			}
 			else {
 				$translation_array = $args[0];
 			}
 			
-			$p = (isset($args[1])) ? $args[1] : "";
+			$p = (isset($args[1])) ? $args[1] : ""; // prefix
 			$dont_translate = array_filter($translation_array, "is_numeric" , ARRAY_FILTER_USE_KEY);
 			array_walk($dont_translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$v];}, $p);
 			$translate = array_diff_assoc($translation_array, $dont_translate);
