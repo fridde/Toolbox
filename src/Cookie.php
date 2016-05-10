@@ -6,46 +6,47 @@
 	{
 		
 		/**
-		* Build a single cookie value from several variables.
-		*
-		* [Description]
-		
-		* @param array $var_array The values to store in a single cookie. The total length of all letters should not exceed 
-		*
-		* @return [type] [name] [description]
+			* Build a single cookie value from several variables.
+			*
+			* [Description]
+			
+			* @param array $array The values to store in a single cookie. 
+			*
+			* @return [type] [name] [description]
 		*/ 
-		function prepare_cookie($var_array) {
+		public function prepare($var_array) {
 			
 			if (is_array($var_array)) {
-				foreach ($var_array as $index => $data) {
-					$out.= ($data!="") ? $index."=".$data."|" : "";
-				}
+				$return_string = http_build_query($array);
 			} 
 			else {
 				throw new \Exception("The parameter given to prepare_cookie() should be given as an array."); 
-				}
-			return rtrim($out,"|");
+			}
+			return $return_string;
 		}
 		
 		/**
-		* [Summary].
-		*
-		* [Description]
-		
-		* @param [Type] $[Name] [Argument description]
-		*
-		* @return [type] [name] [description]
+			* [Summary].
+			*
+			* [Description]
+			
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
 		*/ 
-		function break_cookie ($cookie_string) {
-			$array=explode("|",$cookie_string);
-			foreach ($array as $i=>$stuff) {
-				$stuff=explode("=",$stuff);
-				$array[$stuff[0]]=$stuff[1];
-				unset($array[$i]);
-			}
-			return $array;
+		public function parse($cookie_string) {
+			parse_str($cookie_string, $return_array);
+			
+			return $return_array;
 		}
 		
+		public static function set($array, $cookie_name = "userSettings")
+		{
+			$expiration = strtotime("+6 months");
+			$host = $_SERVER["host"];
+			
+			
+		}
 		//this assumes that the user has just logged in
 		/****Creating an identification string****/
 		
