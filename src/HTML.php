@@ -877,6 +877,19 @@
 		*/
 		public function addBsModal()
 		{
+			
+			/*
+				modal
+				--dialog
+				----content
+				------header 
+				--------close-button
+				--------title
+				------body
+				------footer
+				--------close-button
+				--------save-button
+			*/
 			$def = ["node" => null, "options" => array(), "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			$possible_options = ["title" => "", "id" => "login_modal", "button_texts" => ["Close", "Save changes"]];
@@ -897,18 +910,21 @@
 			$this->add($footer, "button", $options["button_texts"][1], [["btn btn-primary", $options["id"]. "_submit"]]);
 			
 			return ["modal" => $modal, "header" => $header, "body" => $body, "footer" => $footer];
-			
-			/*
-modal
---dialog
-----content
-------header 
---------close-button
---------title
-------body
-------footer
---------close-button
---------save-button
-			*/
+		}
+		
+		public static function partition($array, $columns = 2, $horizontal = true)
+		{
+			if($horizontal){
+				$partition = array();
+				$i = 0;
+				foreach($array as $key => $value){
+					$partition[$i % $columns][$key] = $value;
+					$i++;
+				}
+			}
+			else {
+				$partition = array_chunk($array, ceil(count($array)/$columns), true);
+			}
+			return $partition;
 		}
 	}

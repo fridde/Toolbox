@@ -13,9 +13,6 @@
 		function __construct ()
 		{
 			$args = func_get_args();
-			if(isset($args[0])){
-				$this->table_name = $args[0];
-			}
 			$this->setConfiguration();
 			$slice = new \PHPixie\Slice();
 			parent::__construct($slice->arrayData($this->configuration));
@@ -39,11 +36,17 @@
 			$conn_string = "mysql:host=" . $det["db_host"] . ";dbname=" . $det["db_name"];
 			$config = ["default" => ['driver' => 'pdo', 'connection' => $conn_string,
 			'user' => $det["db_username"], 'password' => $det["db_password"]]];
-			if(!isset($this->table_name)){
-				$this->table_name = $det["default_table"];
-			}
+			$this->setTable($det["default_table"]);
 			$this->configuration = $config;
 		}
+		
+		public function setTable($table)
+		{
+			$this->table_name = $table;
+		}
+		
+		
+		
 		
 		public function select()
 		{
@@ -196,45 +199,49 @@
 		}
 		
 		/**
-		* [Summary].
+			* [Summary].
+			*
+			
+			* [Description]
+			
+			
+			* @param array $data The input data. Each row MUST be given as an associative array, i.e. $data = [["id" => "2", "name" => "Adam"],["name" => "Eve"]]
 		*
-		* [Description]
 		
-		* @param array $data The input data. Each row MUST be given as an associative array, i.e. $data = [["id" => "2", "name" => "Adam"],["name" => "Eve"]]
-		*
 		* @return [type] [name] [description]
 		*/ 
 		public function updateOrInsert($data, $id_column = "id")
 		{
-			// TODO: fix this so it works
-			
-			//$data = $this->prepareDataForInsert($data);
-			$insert_array = array();
-			foreach($data as $row){
-				$id_given = isset($row[$id_column]);
-				$row_exists = false;
-				if($id_given){
-					$this->query = $this->select()->where($id_column, $row[$id_column]);
-					if(count($this->fetch()) > 0){
-						$row_exists = true;
-					}
-				}
-				if($id_given && $row_exists){
-					$query = $this->update()->where($id_column, $row[$id_column]);
-					foreach(array_keys($row) as $col_name){
-						if($col_name != $id_column){
-							$query->set($col_name, $row[$col_name]);
-						}
-					}
-					$query->execute();
-				}
-				else {
-					$row[$id_column] = null;
-					$insert_array[] = $row;
-				}
-			}
-			if(count($insert_array) > 0){
-				$this->insert($insert_array);
-			}
+		// TODO: fix this so it works
+		
+		//$data = $this->prepareDataForInsert($data);
+		$insert_array = array();
+		foreach($data as $row){
+		$id_given = isset($row[$id_column]);
+		$row_exists = false;
+		if($id_given){
+		$this->query = $this->select()->where($id_column, $row[$id_column]);
+		if(count($this->fetch()) > 0){
+		$row_exists = true;
 		}
-	}																																																																															
+		}
+		if($id_given && $row_exists){
+		$query = $this->update()->where($id_column, $row[$id_column]);
+		foreach(array_keys($row) as $col_name){
+		if($col_name != $id_column){
+		$query->set($col_name, $row[$col_name]);
+		}
+		}
+		$query->execute();
+		}
+		else {
+		$row[$id_column] = null;
+		$insert_array[] = $row;
+		}
+		}
+		if(count($insert_array) > 0){
+		$this->insert($insert_array);
+		}
+		}
+		}																																																																															
+				

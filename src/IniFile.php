@@ -4,7 +4,7 @@
 	/***************************************************************************************************
 		/* AUTHOR
         Christian Vigh, 01/2010.
-		API: http://www.phpclasses.org/package/9413-PHP-Load-and-edit-configuration-INI-format-files.html
+		API-Documentation: http://www.phpclasses.org/package/9413-PHP-Load-and-edit-configuration-INI-format-files.html
 		
 		// Instanciate an IniFile object for file example.ini
 		$inifile 	=  IniFile::LoadFromFile ( 'example.ini' ) ;
