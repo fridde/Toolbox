@@ -206,42 +206,70 @@
 			
 			
 			* @param array $data The input data. Each row MUST be given as an associative array, i.e. $data = [["id" => "2", "name" => "Adam"],["name" => "Eve"]]
-		*
-		
-		* @return [type] [name] [description]
+			*
+			
+			* @return [type] [name] [description]
 		*/ 
 		public function updateOrInsert($data, $id_column = "id")
 		{
-		// TODO: fix this so it works
+			// TODO: fix this so it works
+			
+			//$data = $this->prepareDataForInsert($data);
+			$insert_array = array();
+			foreach($data as $row){
+				$id_given = isset($row[$id_column]);
+				$row_exists = false;
+				if($id_given){
+					$this->query = $this->select()->where($id_column, $row[$id_column]);
+					if(count($this->fetch()) > 0){
+						$row_exists = true;
+					}
+				}
+				if($id_given && $row_exists){
+					$query = $this->update()->where($id_column, $row[$id_column]);
+					foreach(array_keys($row) as $col_name){
+						if($col_name != $id_column){
+							$query->set($col_name, $row[$col_name]);
+						}
+					}
+					$query->execute();
+				}
+				else {
+					$row[$id_column] = null;
+					$insert_array[] = $row;
+				}
+			}
+			if(count($insert_array) > 0){
+				$this->insert($insert_array);
+			}
+		}
 		
-		//$data = $this->prepareDataForInsert($data);
-		$insert_array = array();
-		foreach($data as $row){
-		$id_given = isset($row[$id_column]);
-		$row_exists = false;
-		if($id_given){
-		$this->query = $this->select()->where($id_column, $row[$id_column]);
-		if(count($this->fetch()) > 0){
-		$row_exists = true;
+		/**
+			* [Summary].
+			*
+			* [Description]
+			*
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/
+		public function getFirst($result, $columns = null)
+		{
+			$first = $result[0];
+			
+			if(!isset($columns)){
+				$values = $first;
+			}
+			elseif(is_string($values)){
+				$values = $first[$columns];
+			}
+			elseif(is_array($columns)){
+				$values = array_intersect_key($first, array_flip($columns));
+			}
+			else {
+				throw new \Exception("The parameter $columns was given in an invalid form");
+			}
+			return $values;
 		}
-		}
-		if($id_given && $row_exists){
-		$query = $this->update()->where($id_column, $row[$id_column]);
-		foreach(array_keys($row) as $col_name){
-		if($col_name != $id_column){
-		$query->set($col_name, $row[$col_name]);
-		}
-		}
-		$query->execute();
-		}
-		else {
-		$row[$id_column] = null;
-		$insert_array[] = $row;
-		}
-		}
-		if(count($insert_array) > 0){
-		$this->insert($insert_array);
-		}
-		}
-		}																																																																															
-				
+		
+	}																																																																															
