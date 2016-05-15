@@ -253,12 +253,17 @@
 			*
 			* @return [type] [name] [description]
 		*/
-		public function getFirst($result, $columns = null)
+		public function getFirst($result, $columns = true)
 		{
-			$first = $result[0];
-			
-			if(!isset($columns)){
+			$first = reset($result);
+			if(count($result) == 0){
+				$values = array();
+			}
+			elseif($columns === true){
 				$values = $first;
+			}
+			elseif($columns === false){
+				$values = $result;
 			}
 			elseif(is_string($values)){
 				$values = $first[$columns];
