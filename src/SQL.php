@@ -265,7 +265,7 @@
 			elseif($columns === false){
 				$values = $result;
 			}
-			elseif(is_string($values)){
+			elseif(is_string($columns)){
 				$values = $first[$columns];
 			}
 			elseif(is_array($columns)){
