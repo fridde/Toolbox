@@ -33,9 +33,14 @@
 			else {
 				throw new \Exception("No valid config.ini was found.");				
 			}
-			$conn_string = "mysql:host=" . $det["db_host"] . ";dbname=" . $det["db_name"];
-			$config = ["default" => ['driver' => 'pdo', 'connection' => $conn_string,
-			'user' => $det["db_username"], 'password' => $det["db_password"]]];
+			$conn_string_default = "mysql:host=" . $det["db_host"] . ";dbname=" . $det["db_name"];
+			$conn_string_info = "mysql:host=" . $det["db_host"] . ";dbname=INFORMATION_SCHEMA";
+			$settings_default = ['driver' => 'pdo', 'connection' => $conn_string_default,
+			'user' => $det["db_username"], 'password' => $det["db_password"]];
+			$settings_info = $settings_default;
+			$settings_info["connection"] = $conn_string_info;
+			$config = ["default" => $settings_default, "info" => $settings_info];
+			$this->database = $det["db_name"];
 			$this->setTable($det["default_table"]);
 			$this->configuration = $config;
 		}
@@ -275,6 +280,18 @@
 				throw new \Exception("The parameter $columns was given in an invalid form");
 			}
 			return $values;
+		}
+		
+		public function getColumnNames($table = null)
+		{
+			$this->conn = $this->get("info");
+			$this->setTable("COLUMNS");
+			$this->query = $this->select();
+			$this->query->where("TABLE_SCHEMA", $this->database)->and("TABLE_NAME", $table)->execute();
+			$results = $this->fetch();
+			$this->conn = $this->get("default");
+			$results = array_map(function($i){return $i["COLUMN_NAME"];}, $results);
+			return $results;
 		}
 		
 	}																																																																															
