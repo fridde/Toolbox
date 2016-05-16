@@ -12,7 +12,6 @@
 		
 		function __construct ()
 		{
-			$args = func_get_args();
 			$this->setConfiguration();
 			$slice = new \PHPixie\Slice();
 			parent::__construct($slice->arrayData($this->configuration));
@@ -143,29 +142,41 @@
 		*/ 
 		public function prepareDataForInsert($data)
 		{
+			if($data == "" || count($data) == 0){
+				throw new \Exception("data for insertion was empty");
+			}
 			$return_data = [[], []];
+			
+			
+			$data_values = array_values($data);
+			$data_keys = array_keys($data);
+			$first_is_array = is_array($data_values[0]);
+			$column_names_as_keys = false;
+			if($first_is_array){
+				$column_names_as_keys = count(array_filter($data_values[0],"is_numeric",ARRAY_FILTER_USE_KEY)) == 0;
+			}
 			/* $data is given as batch data
 				Example: $data = [["id" => 1, "name" => "Adam", "job" => "zoo keeper"], ["id" => 2, "name" => "Eve", "job" => "gardener"]], where column names are repeated
 			*/
-			if(count($data) > 0 && is_array(reset($data)) && !is_numeric(key(reset($data)))){  
-				$return_data[0] = array_keys(reset($data));
+			if($first_is_array && $column_names_as_keys){  
+				$return_data[0] = array_keys($data_values[0]);
 				$return_data[1] = array_map("array_values", $data);
 			}
 			/* $data is given as batch data, but with the first array containing the indices, and the second array containing the data (without keys)
 				Example: $data = [["id", "name", "job"],[[1, "Adam", "zoo keeper"], [2, "Eve", "gardener"]]]
 			*/ 
-			else if(count($data) == 2 && is_array($data[0]) && is_array($data[1]) && isset($data[0][0])){
+			else if(count($data) == 2 && $first_is_array && is_array($data_values[1][0])){
 				$return_data = $data;
 			}
 			/* $data is given as a single row. 
 				Example: $data = ["id" => 1, "name" => "Adam", "job" => "zoo keeper"]
 			*/ 
-			else if(!is_array(reset($data))){
-				$return_data[0] = array_keys($data);
-				$return_data[1] = [array_values($data)];
+			else if(!$first_is_array){
+				$return_data[0] = $data_keys;
+				$return_data[1] = [$data_values];
 			}
 			else {
-				throw new \Exception("The insert argument didn't conform to the standards. See documentation for PHPixie\Database's insertQuery->batchData().");
+				throw new \Exception("The insert argument didn't conform to the standards. See documentation for PHPixie/Database's insertQuery->batchData().");
 			}
 			
 			return $return_data;
