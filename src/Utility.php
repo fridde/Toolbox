@@ -350,7 +350,7 @@
 		
 		public static function logg($data, $infoText = "", $file_name = null)
 		{
-			if(!isset($file_name){
+			if(!isset($file_name)){
 				$file_name = dirname(__FILE__, 1) . ".log";
 			}   
 			$debug_info = array_reverse(debug_backtrace());
