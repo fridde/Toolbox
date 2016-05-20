@@ -148,6 +148,9 @@
 				if(!is_numeric($key)){
 					$atts["id"] = $key;
 				}
+				if(trim($tag) == ""){
+					throw new \Exception("The tag name can't be empty!");
+				}
 				$element = $this->createElement($tag, $content);
 				
 				/* this part is to enable a short-hand notation where the first element of $atts (attribute array) is 

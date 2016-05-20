@@ -348,8 +348,11 @@
 			* @return TYPE NAME DESCRIPTION
 		*/
 		
-		public static function logg($data, $infoText = "", $filename = "toolbox.log")
+		public static function logg($data, $infoText = "", $file_name = null)
 		{
+			if(!isset($file_name){
+				$file_name = dirname(__FILE__, 1) . ".log";
+			}   
 			$debug_info = array_reverse(debug_backtrace());
 			$chainFunctions = function($p,$n){
 				$class = (isset($n["class"]) ? "(". $n["class"] . ")" : "");
@@ -490,4 +493,4 @@
 			$translate = array_diff_assoc($translation_array, $dont_translate);
 			array_walk($translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$k];}, $p);
 		}
-	}																						
+	}																							
