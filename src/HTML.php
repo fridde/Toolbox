@@ -851,7 +851,6 @@
 			foreach($tab_array as $tab_id_suffix => $tab_title){
 				$div_class = "tab-pane fade";
 				$li_class = "";
-				$tab_id_suffix = (is_numeric($tab_id_suffix) ? $i + 1 : $tab_id_suffix);
 				$id = $tab_id_prefix . $tab_id_suffix ;
 				$title = $tab_title;
 				if($i == 0){
