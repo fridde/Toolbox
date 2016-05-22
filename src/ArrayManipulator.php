@@ -18,22 +18,6 @@
 		return $array;
 	}
 	/**
-		* SUMMARY OF add_header
-		*
-		* DESCRIPTION
-		*
-		* @param TYPE ($array, $header) ARGDESCRIPTION
-		*
-		* @return TYPE NAME DESCRIPTION
-	*/
-	
-	function add_header($array, $header)
-	{
-		$header = explode(",", $header);
-		array_unshift($array, $header);
-		return $array;
-	}
-	/**
 		* SUMMARY OF remove_duplicates
 		*
 		* DESCRIPTION

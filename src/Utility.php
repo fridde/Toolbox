@@ -348,11 +348,8 @@
 			* @return TYPE NAME DESCRIPTION
 		*/
 		
-		public static function logg($data, $infoText = "", $file_name = null)
+		public static function logg($data, $infoText = "", $file_name = "logg.txt")
 		{
-			if(!isset($file_name)){
-				$file_name = dirname(__FILE__, 1) . ".log";
-			}   
 			$debug_info = array_reverse(debug_backtrace());
 			$chainFunctions = function($p,$n){
 				$class = (isset($n["class"]) ? "(". $n["class"] . ")" : "");
@@ -380,7 +377,7 @@
 			$string .= "Calling stack: " . $calling_functions . "\n"; 
 			$string .= $file . " produced this log entry";
 			
-			file_put_contents($filename, $string, FILE_APPEND);
+			file_put_contents($file_name, $string, FILE_APPEND);
 			
 		}
 		/**

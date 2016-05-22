@@ -825,9 +825,10 @@
 			*
 			* DESCRIPTION
 			*
-			* @param TYPE ($tab_args) ARGDESCRIPTION
+			* @param Node $node The node to attach the tabs to.
+			* @param array $tab_array The array of tabs given in the format [id_1 => tab_title_1, id_2 => tab_title_2, ...] 
 			*
-			* @return TYPE NAME DESCRIPTION
+			* @return array $node_array An array containing of the created id-prefix (to ensure uniqueness) and the tab-nodes in the format [first_id => first_node, second_id => second_node]
 		*/
 		
 		public function addBsTabs()
