@@ -413,6 +413,20 @@
 			$def = ["node" => null, "name" => null, "type" => "text", "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
+			if(is_array($name) && count($name) == 2){
+				$label = $name[1];
+				$name = $name[0];
+				if(isset($atts["id"])){
+					$id = $atts["id"];
+				}
+				elseif(isset($atts[0][1])){ //id already exists
+					$id = $atts[0][1];
+				}
+				else { // we have to create an id
+					$id = $name . "_" . rand(0,999);
+				}
+				$this->add($node, "label", $label, ["for" => $id]);
+			}
 			$atts["type"] = $type;
 			if($type != "submit"){
 				$atts["name"] = $name;
@@ -437,6 +451,21 @@
 		{
 			$def = ["node" => null, "name" => null, "options" => array() , "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			if(is_array($name) && count($name) == 2){
+				$label = $name[1];
+				$name = $name[0];
+				if(isset($atts["id"])){
+					$id = $atts["id"];
+				}
+				elseif(isset($atts[0][1])){ //id already exists
+					$id = $atts[0][1];
+				}
+				else { // we have to create an id
+					$id = $name . "_" . rand(0,999);
+				}
+				$this->add($node, "label", $label, ["for" => $id]);
+			}
 			
 			$atts["name"] = $name;
 			$select = $this->add($node, "select", "", $atts);
