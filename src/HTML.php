@@ -722,6 +722,21 @@
 			$def = ["node" => null, "content" => "", "name" => "", "rows" => "4", "cols" => "50", "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
+			if(is_array($name) && count($name) == 2){
+				$label = $name[1];
+				$name = $name[0];
+				if(isset($atts["id"])){
+					$id = $atts["id"];
+				}
+				elseif(isset($atts[0][1])){ //id already exists
+					$id = $atts[0][1];
+				}
+				else { // we have to create an id
+					$id = $name . "_" . rand(0,999);
+				}
+				$this->add($node, "label", $label, ["for" => $id]);
+			}
+			
 			if(is_array($content)){
 				$atts["placeholder"] = reset($content);
 				$content = "";
