@@ -89,10 +89,9 @@
 		public function prepareForExtraction($default_array, $args) {
 			
 			$args_names = array_keys($default_array);
-			
 			/* check if the arguments are given as a single array with keys corresponding to the keys of $default_array, e.g
 			myFunction(["class" => "redClass", "id" => "mainFrame"]) */
-			if(count($args) == 1 && is_array($args[0]) && !isset($args[0][0])) {
+			if(count($args) == 1 && count(array_intersect_key($default_array, $args)) > 0) {
 				$return_array = array_merge($default_array, $args[0]);
 			} 
 			else { // args is a numerical array that follows the order of the default array
@@ -311,6 +310,18 @@
 			}
 			$button = $this->add($node, "button", $content, $atts);
 			return $button;
+		}
+		
+		public function addDiv()
+		{
+			$def = ["node" => null, "class" => "", "atts" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$atts["class"] = (isset($atts["class"])) ? $atts["class"] : $class;
+			
+			$div = $this->add($node, "div", "", $atts);
+			
+			return $div;
 		}
 		
 		/**
