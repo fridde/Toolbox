@@ -43,7 +43,7 @@
 			* @param [Type] $[Name] [Argument description]
 			*
 			* @return [type] [name] [description]
-		*/ 
+		**/ 
 		public function render($echo = true)
 		{
 			$prequel = "<!DOCTYPE html>\n";
@@ -985,43 +985,54 @@
 			}
 			return $partition;
 		}
-	}
-	/**
-	* [Summary].
-	*
-	* [Description]
-	*
-	* @param array $options Contains optional settings. Possible elements:
-	"ignore" => ["col1", "col2"]  Columns to not be included in the table
-	"data_types" => ["col1" => "date", "col2" => "select"]
-	"select_options" => ["col2" => ["pre_selection", "other_option_1"]
-	* ]
-	*
-	* @return [type] [name] [description]
-	*/
-	public function addEditableTable(){
-		$def = ["node" => null, "array" => array(), "header_row" => null, "atts" => array(), "options" => array()];
-		extract($this->prepareForExtraction($def, func_get_args()));
 		
-		$div = $this->add($node, "div", "", [["table-responsive"]]);
-		$table = $this->add($div, "table", "", [["table editable"]]);
-		$thead = $this->add($table, "thead");
-		$thead_row = $this->add($thead, "tr");
-		$tbody = $this->add($table, "tbody");
-		
-		if(!(isset($header_row) && is_array($header_row))){
-			$first_row = reset($array);
-			$header_row = array_keys($first_row);
-		}
-		
-		foreach($header_row as $th){
-			$this->add($thead_row, "th", $th);
-		}
-		foreach($array as $row){
-			$tr = $this->add($tbody, "tr", "", ["data-id" => $row["id"]]);
-			foreach($row as $column => $cell){
-				// TODO: put in cells with names
+		/**
+			* [Summary].
+			*
+			* [Description]
+			*
+			* @param array $options Contains optional settings. Possible elements:
+			"ignore" => ["col1", "col2"]  Columns to not be included in the table
+			"data_types" => ["col1" => "date", "col2" => "select"]
+			"select_options" => ["col2" => ["pre_selection", "other_option_1"]
+			* ]
+			*
+			* @return [type] [name] [description]
+		*/
+		public function addEditableTable()
+		{
+			$def = ["node" => null, "array" => array(), "header_row" => null, "atts" => array(), "options" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$ignore = (isset($options["ignore"])) ? $options["ignore"] : [];
+			$data_types = (isset($options["data_types"])) ? $options["data_types"] : [] ;
+			$select_options = (isset($options["select_options"])) ? $options["select_options"] : [] ; 
+			
+			$div = $this->add($node, "div", "", [["table-responsive"]]);
+			$table = $this->add($div, "table", "", [["table editable"]]);
+			$thead = $this->add($table, "thead");
+			$thead_row = $this->add($thead, "tr");
+			$tbody = $this->add($table, "tbody");
+			
+			if(!(isset($header_row) && is_array($header_row))){
+				$first_row = reset($array);
+				$header_row = array_keys($first_row);
 			}
+			
+			foreach($header_row as $th){
+				if(!in_array($th, $ignore)){
+					$this->add($thead_row, "th", $th);
+				}
+			}
+			foreach($array as $row){
+				$tr = $this->add($tbody, "tr", "", ["data-id" => $row["id"]]);
+				foreach($row as $column => $cell){
+					if(!(isset($options["ignore"]) && in_array($column, $options["ignore"]))){
+						$td = $this->add($tr, "td");
+						$this->addInput($td, $column, "text", ["data-column" => $column, "value" => $cell]);
+					}
+				}
+			}
+			
 		}
-		
-	}
+	}		
