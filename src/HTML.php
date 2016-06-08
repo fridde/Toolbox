@@ -120,7 +120,6 @@
 		{
 			$def = ["tag" => null, "content" => "", "atts" => array(), "return_as_array" => false];
 			extract($this->prepareForExtraction($def, func_get_args()));
-			
 			$is_single_element = is_string($tag);
 			if($is_single_element){
 				$element_array = [[$tag, $content, $atts]];
@@ -167,15 +166,16 @@
 					array_shift($atts);
 				}
 				//adding attributes to the element
+				
 				foreach($atts as $attribute_name => $attribute_value){
 					
 					if(is_numeric($attribute_name)){
 						$attribute = $this->createAttribute($attribute_value);
 						$element->appendChild($attribute);
 					} 
-					else if($attribute_value != ""){
+					else if($attribute_value !== ""){
 						$attribute = $this->createAttribute($attribute_name);
-						$attribute->value = $attribute_value;
+						$attribute->value = htmlspecialchars($attribute_value);
 						$element->appendChild($attribute);
 					}
 				}
@@ -404,7 +404,8 @@
 			*
 			* [Description]
 			
-			* @param [Type] $[Name] [Argument description]
+			* @param mixed $name If $name is a string, it will be used as the "name"-attribute of the input. 
+			* If $name is an array, a label given in the second element of $name will be created, too.
 			*
 			* @return [type] [name] [description]
 		*/ 
@@ -413,29 +414,40 @@
 			$def = ["node" => null, "name" => null, "type" => "text", "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
+			$add_label = false;
+			$label_first = !in_array($type, ["radio", "checkbox"]);
+			$random_nr = rand(0,9999);
+			
 			if(is_array($name) && count($name) == 2){
 				$label = $name[1];
 				$name = $name[0];
 				if(isset($atts["id"])){
 					$id = $atts["id"];
 				}
-				elseif(isset($atts[0][1])){ //id already exists
+				elseif(isset($atts[0]) && is_array($atts[0]) && isset($atts[0][1])){ //id already exists
 					$id = $atts[0][1];
 				}
 				else { // we have to create an id
-					$id = $name . "_" . rand(0,999);
+					$id = $name . "_" . $random_nr;
 				}
-				$this->add($node, "label", $label, ["for" => $id]);
+				$add_label = true;
 			}
 			$atts["type"] = $type;
+			
 			if($type != "submit"){
 				$atts["name"] = $name;
 			}
 			else if (!isset($atts["value"])) {
 				$atts["value"] = "Submit";
 			}
-			
+			if($add_label && $label_first){
+				$this->add($node, "label", $label, ["for" => $id]);
+			}
 			$input = $this->add($node, "input", "", $atts);
+			if($add_label && !$label_first){
+				$this->add($node, "label", $label, ["for" => $id]);
+			}
+			
 			return $input;
 		} 
 		/**
@@ -449,7 +461,7 @@
 		*/ 
 		public function addSelect()
 		{
-			$def = ["node" => null, "name" => null, "options" => array() , "atts" => array()];
+			$def = ["node" => null, "name" => null, "select_options" => array() , "selected" => null, "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
 			if(is_array($name) && count($name) == 2){
@@ -470,23 +482,81 @@
 			$atts["name"] = $name;
 			$select = $this->add($node, "select", "", $atts);
 			$select_array = array();
-			foreach($options as $option_text => $option){
-				if(is_array($option)){ 
-					// given as [option_text, option_value, atts]. If option_value is an empty string, it is assumed to be equal option_text
-					$option_text = $option[0];
-					$option_value = (isset($option[1]) &&  $option[1] != "" ? $option[1] : $option_text);
-					$option_atts = (isset($option[2]) ? $option[2] : array());
+			foreach($select_options as $option){
+				
+				// given as [option_text, option_value, atts]. If option_value is an empty string, it is assumed to be equal option_text
+				$option_text = $option[0];
+				$option_value = (isset($option[1]) &&  $option[1] != "") ? $option[1] : $option_text;
+				$option_atts = (isset($option[2])) ? $option[2] : ["value" => $option_value];
+				
+				$is_selected = false;
+				if($option_value == $selected){
+					$is_selected = true;
 				}
-				else {
-					$option_text = $option_value = $option;
-					$option_atts = array();
+				elseif(is_null($selected) && array_search($option_value, $select_options) === 0){ // default: first element is selected
+					$is_selected = true;
 				}
-				$option_atts["value"] = $option_value;
+				if($is_selected){
+					$option_atts[] = "selected";
+				}
 				
 				$select_array[] = $this->add($select, "option", $option_text, $option_atts);
 			}
 			return $select_array;
 		} 
+		
+		public function addCheckboxes()
+		{
+			$def = ["node" => null, "name" => null, "select_options" => [] , "checked" => array(), "atts" => array(), "options" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$fieldset = $this->add($node, "fieldset", "", $atts);
+			$fieldset_array = array();
+			$name .= '[]';
+			foreach($select_options as $option){
+				$option_text = $option[0];
+				$option_value = (isset($option[1]) &&  $option[1] != "") ? $option[1] : $option_text;
+				$option_atts = (isset($option[2])) ? $option[2] : ["value" => $option_value];
+				
+				if(in_array($option_value, $checked)){
+					$option_atts[] = "checked";
+				}
+				//$def = ["node" => null, "name" => null, "type" => "text", "atts" => array()];
+				$fieldset_array[] = $this->addInput($fieldset, [$name, $option_text], "checkbox", $option_atts);
+			}
+			
+			return $fieldset_array;
+		}
+		
+		public function addRadio()
+		{
+			$def = ["node" => null, "name" => null, "select_options" => [] , "selected" => null, "atts" => array(), "options" => array()];
+			extract($this->prepareForExtraction($def, func_get_args()));
+			
+			$common_atts = $atts;
+			$name = $name . "_" . rand(0,9999);
+			$i = 0;
+			foreach($select_options as $option_text => $option_value){
+				$option_atts = array();
+				$is_selected = false;
+				if($selected === $option_value){
+					$is_selected = true;
+				}
+				elseif(is_null($selected) && array_search($option_value, $select_options) === 0){ // default: first element is selected
+					$is_selected = true;
+				}
+				if($is_selected){
+					$option_atts[] = "checked";
+				}
+				$option_atts["value"] = $option_value;
+				$atts = array_merge($common_atts, $option_atts);
+				$radio_input[] = $this->addInput($node, [$name, $option_value], "radio", $atts);
+				$this->add($node, "br");
+				$i++;
+			}
+			
+			return $radio_input;
+		}
 		
 		/**
 			* [Summary].
@@ -1005,18 +1075,23 @@
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
 			$ignore = (isset($options["ignore"])) ? $options["ignore"] : [];
-			$data_types = (isset($options["data_types"])) ? $options["data_types"] : [] ;
+			$data_types = (isset($options["data_types"])) ? $this->createOptions($options["data_types"]) : [] ;
 			$select_options = (isset($options["select_options"])) ? $options["select_options"] : [] ; 
 			
 			$div = $this->add($node, "div", "", [["table-responsive"]]);
-			$table = $this->add($div, "table", "", [["table editable"]]);
+			$table = $this->add($div, "table", "", [["table editable"], "data-table" => $options["table"]]);
 			$thead = $this->add($table, "thead");
 			$thead_row = $this->add($thead, "tr");
 			$tbody = $this->add($table, "tbody");
 			
 			if(!(isset($header_row) && is_array($header_row))){
-				$first_row = reset($array);
-				$header_row = array_keys($first_row);
+				if(count($array) > 0){
+					$first_row = reset($array);
+					$header_row = array_keys($first_row);
+				}
+				else {
+					exit("This table is empty");
+				}
 			}
 			
 			foreach($header_row as $th){
@@ -1027,12 +1102,86 @@
 			foreach($array as $row){
 				$tr = $this->add($tbody, "tr", "", ["data-id" => $row["id"]]);
 				foreach($row as $column => $cell){
-					if(!(isset($options["ignore"]) && in_array($column, $options["ignore"]))){
+					$atts = ["data-column" => $column, "value" => $cell];
+					
+					if(!in_array($column, $ignore)){
 						$td = $this->add($tr, "td");
-						$this->addInput($td, $column, "text", ["data-column" => $column, "value" => $cell]);
+						$data_type = (isset($data_types[$column])) ? $data_types[$column] : false ;
+						if($data_type){
+							switch($data_type){
+								case "date":
+								$atts["class"] = "date";
+								$this->addInput($td, $column, "text", $atts);
+								break;
+								
+								case "textarea":
+								$this->addTextarea($td, $cell, $column, 4, 30, $atts);
+								break;
+								
+								case "select":
+								if(isset($select_options[$column])){
+									$s_options = $select_options[$column];
+								}
+								else {
+									$s_options = array_unique(array_column($array, $column));
+								}
+								$this->addSelect($td, $column, $s_options, $cell);
+								break;
+								
+								case "checkbox":
+								if(isset($select_options[$column])){
+									$s_options = $select_options[$column];
+								}
+								else {
+									$s_options = array_unique(array_column($array, $column));
+								}
+								$this->addCheckboxes($td, $column, $s_options, explode(",", $cell));
+								// $def = ["node" => null, "name" => null, "select_options" => [] , "checked" => array(), "atts" => array(), "options" => array()];
+								break;
+								
+								case "slider":
+								$atts["class"] = "input-slider";
+								$atts["data-min"] = 0;
+								$atts["data-max"] = 50;
+								if(isset($select_options[$column])){
+									$atts["data-min"] = $select_options[$column][0];
+									$atts["data-max"] = $select_options[$column][1];
+								}
+								$slider_id = "slider_" . $column . "_" . $row["id"];
+								$atts["data-slider-id"] = $slider_id;
+								$this->add($td, "div", "", $atts);
+								$this->add($td, "div", $cell, [["slider-value", $slider_id]]);
+								break;
+								
+								case "showOnly":
+								$this->add($td, "span", $cell);
+								break;
+								
+								case "radio":
+								$this->addRadio($td, $column, ["true", "false"], $cell);
+								
+								//$def = ["node" => null, "name" => null, "select_options" => [] , "selected" => null, "atts" => array(), "options" => array()];
+								break;
+							}
+							
+						}
+						else {
+							$this->addInput($td, $column, "text", $atts);
+						}
 					}
 				}
 			}
 			
 		}
-	}		
+		
+		
+		
+		private function createOptions($inputArray)
+		{
+			$callback = function($key, $value){
+				return array_fill_keys($value, $key);
+			};
+			$return = array_map($callback, array_keys($inputArray), $inputArray);
+			return array_reduce($return, function($prev, $curr){return array_merge($prev, $curr);}, []);
+		}
+	}																																							
