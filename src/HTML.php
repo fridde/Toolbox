@@ -96,9 +96,16 @@
 			} 
 			else { // args is a numerical array that follows the order of the default array
 				$return_array = $default_array;
-				foreach($args as $key => $arg){
-					$name = $args_names[$key];
-					$return_array[$name] = $arg;
+				foreach($args as $i => $arg){
+					$name = $args_names[$i];  //"options"
+					$def_arg = $default_array[$name];
+					$user_arg = $arg;
+					if(is_array($def_arg) && is_array($arg)){ // true
+						$return_array[$name] = $arg + $return_array[$name];
+					}
+					else {
+						$return_array[$name] = $arg;
+					}
 				}
 			}
 			return $return_array;
@@ -978,7 +985,7 @@
 				$li_class = "";
 				$id = $tab_id_prefix . $tab_id_suffix ;
 				$title = $tab_title;
-				if($i == 0){
+				if($i === 0){
 					$li_class .= "active";
 					$div_class .= " in active";
 				}
@@ -1065,20 +1072,24 @@
 			"ignore" => ["col1", "col2"]  Columns to not be included in the table
 			"data_types" => ["col1" => "date", "col2" => "select"]
 			"select_options" => ["col2" => ["pre_selection", "other_option_1"]
+			"header" => ["sql_column_name_1" => "display_name_1", ]
 			* ]
 			*
 			* @return [type] [name] [description]
 		*/
 		public function addEditableTable()
 		{
-			$def = ["node" => null, "array" => array(), "header_row" => null, "atts" => array(), "options" => array()];
+			$def_options = ["ignore" => [], "data_types" => [], "select_options" => [], "table" => "undefined_table", "header" => null];
+			$def = ["node" => null, "array" => [], "options" => $def_options, "atts" => []];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
-			$ignore = (isset($options["ignore"])) ? $options["ignore"] : [];
-			$data_types = (isset($options["data_types"])) ? $this->createOptions($options["data_types"]) : [] ;
-			$select_options = (isset($options["select_options"])) ? $options["select_options"] : [] ; 
+			$ignore = $options["ignore"];
+			$data_types = $options["data_types"];
+			$select_options = $options["select_options"];
+			$header_row = $options["header"];
 			
 			$div = $this->add($node, "div", "", [["table-responsive"]]);
+			
 			$table = $this->add($div, "table", "", [["table editable"], "data-table" => $options["table"]]);
 			$thead = $this->add($table, "thead");
 			$thead_row = $this->add($thead, "tr");
@@ -1087,101 +1098,118 @@
 			if(!(isset($header_row) && is_array($header_row))){
 				if(count($array) > 0){
 					$first_row = reset($array);
-					$header_row = array_keys($first_row);
+					$header_row = array_combine(array_keys($first_row), array_keys($first_row));
 				}
 				else {
 					exit("This table is empty");
 				}
 			}
 			
-			foreach($header_row as $th){
-				if(!in_array($th, $ignore)){
-					$this->add($thead_row, "th", $th);
+			foreach($header_row as $sql_column_name => $display_name){
+				if(in_array($sql_column_name, $ignore)){
+					unset($header_row[$sql_column_name]);
+				}
+				else {
+					$this->add($thead_row, "th", $display_name);
 				}
 			}
 			foreach($array as $row){
 				$tr = $this->add($tbody, "tr", "", ["data-id" => $row["id"]]);
-				foreach($row as $column => $cell){
+				foreach($header_row as $sql_column_name => $display_name){
+					$column = $sql_column_name;
+					$cell = $row[$sql_column_name];
+					
 					$atts = ["data-column" => $column, "value" => $cell];
 					
-					if(!in_array($column, $ignore)){
-						$td = $this->add($tr, "td");
-						$data_type = (isset($data_types[$column])) ? $data_types[$column] : false ;
-						if($data_type){
-							switch($data_type){
-								case "date":
-								$atts["class"] = "date";
-								$this->addInput($td, $column, "text", $atts);
-								break;
-								
-								case "textarea":
-								$this->addTextarea($td, $cell, $column, 4, 30, $atts);
-								break;
-								
-								case "select":
-								if(isset($select_options[$column])){
-									$s_options = $select_options[$column];
-								}
-								else {
-									$s_options = array_unique(array_column($array, $column));
-								}
-								$this->addSelect($td, $column, $s_options, $cell);
-								break;
-								
-								case "checkbox":
-								if(isset($select_options[$column])){
-									$s_options = $select_options[$column];
-								}
-								else {
-									$s_options = array_unique(array_column($array, $column));
-								}
-								$this->addCheckboxes($td, $column, $s_options, explode(",", $cell));
-								// $def = ["node" => null, "name" => null, "select_options" => [] , "checked" => array(), "atts" => array(), "options" => array()];
-								break;
-								
-								case "slider":
-								$atts["class"] = "input-slider";
-								$atts["data-min"] = 0;
-								$atts["data-max"] = 50;
-								if(isset($select_options[$column])){
-									$atts["data-min"] = $select_options[$column][0];
-									$atts["data-max"] = $select_options[$column][1];
-								}
-								$slider_id = "slider_" . $column . "_" . $row["id"];
-								$atts["data-slider-id"] = $slider_id;
-								$this->add($td, "div", "", $atts);
-								$this->add($td, "div", $cell, [["slider-value", $slider_id]]);
-								break;
-								
-								case "showOnly":
-								$this->add($td, "span", $cell);
-								break;
-								
-								case "radio":
-								$this->addRadio($td, $column, ["true", "false"], $cell);
-								
-								//$def = ["node" => null, "name" => null, "select_options" => [] , "selected" => null, "atts" => array(), "options" => array()];
-								break;
-							}
-							
+					
+					$td = $this->add($tr, "td");
+					$data_type = (isset($data_types[$column])) ? $data_types[$column] : "text";
+					
+					switch($data_type){
+						case "date":
+						$atts["class"] = "date";
+						$this->addInput($td, $column, "text", $atts);
+						break;
+						
+						case "textarea":
+						$this->addTextarea($td, $cell, $column, 4, 30, $atts);
+						break;
+						
+						case "select":
+						if(isset($select_options[$column])){
+							$s_options = $select_options[$column];
 						}
 						else {
-							$this->addInput($td, $column, "text", $atts);
+							$s_options = array_unique(array_column($array, $column));
 						}
+						$this->addSelect($td, $column, $s_options, $cell);
+						break;
+						
+						case "checkbox":
+						if(isset($select_options[$column])){
+							$s_options = $select_options[$column];
+						}
+						else {
+							$s_options = array_unique(array_column($array, $column));
+						}
+						$this->addCheckboxes($td, $column, $s_options, explode(",", $cell));
+						break;
+						
+						case "slider":
+						$atts["class"] = "input-slider";
+						$atts["data-min"] = 0;
+						$atts["data-max"] = 50;
+						if(isset($select_options[$column])){
+							$atts["data-min"] = $select_options[$column][0];
+							$atts["data-max"] = $select_options[$column][1];
+						}
+						$slider_id = "slider_" . $column . "_" . $row["id"];
+						$atts["data-slider-id"] = $slider_id;
+						$this->add($td, "div", "", $atts);
+						$this->add($td, "div", $cell, [["slider-value", $slider_id]]);
+						break;
+						
+						case "showOnly":
+						$this->add($td, "span", $cell);
+						break;
+						
+						case "radio":
+						$this->addRadio($td, $column, ["true", "false"], $cell);
+						break;
+						
+						case "text":
+						$this->addInput($td, $column, "text", $atts);
+						break;
 					}
 				}
 			}
 			
+			
 		}
 		
 		
-		
-		private function createOptions($inputArray)
+		/**
+			* "Flatten" a 2-dimensional array using the upper keys as the new values and the lower values as keys.
+			*
+			* An input_array $a = ["pizza" => ["Alice", "Bob"], "soup" => ["Caesar"], "burger" => ["David", "Emily"]] will be "flattened" to one dimension for a quick
+			* lookup using the recent upper-level keys as the new values and the recent lower-level values as the new keys. 
+			* The new array will be $a = ["Alice" => "pizza", "Bob" => "pizza", "Caesar" => "soup", "David" => "burger", "Emily" => "burger"]
+			*
+			* @param [Type] $[Name] [Argument description]
+			*
+			* @return [type] [name] [description]
+		*/
+		private function createOptions($input_array)
 		{
 			$callback = function($key, $value){
 				return array_fill_keys($value, $key);
 			};
-			$return = array_map($callback, array_keys($inputArray), $inputArray);
-			return array_reduce($return, function($prev, $curr){return array_merge($prev, $curr);}, []);
+			if(count($input_array) > 0){
+				$return = array_map($callback, array_keys($input_array), $input_array);
+				return array_reduce($return, function($prev, $curr){return array_merge($prev, $curr);}, []);
+			}
+			else {
+				return [];
+			}
 		}
-	}																																							
+	}																																																

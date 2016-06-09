@@ -130,6 +130,7 @@
 			$data = $this->prepareDataForInsert($data);
 			$this->defineQuery("insert");
 			$this->query->batchData($data[0], $data[1])->execute();
+			return $this->conn->insertId();
 		}
 		/**
 			* Converts data to conform to PHPixie\Database's insertQuery->batchData()

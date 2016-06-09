@@ -468,10 +468,10 @@
 			*
 			* DESCRIPTION
 			*
-			* @param array translation_array, prefix
+			* @param array @translation_array 
+			* @param string $prefix 
 			* 
-			*
-			* @return TYPE NAME DESCRIPTION
+			* @return void
 		*/
 		public static function extractRequest()
 		{	
