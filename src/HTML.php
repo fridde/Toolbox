@@ -470,14 +470,13 @@
 		{
 			$def = ["node" => null, "name" => null, "select_options" => array() , "selected" => null, "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
-			
 			if(is_array($name) && count($name) == 2){
 				$label = $name[1];
 				$name = $name[0];
-				if(isset($atts["id"])){
+				if(isset($atts["id"])){ //id already exists
 					$id = $atts["id"];
 				}
-				elseif(isset($atts[0][1])){ //id already exists
+				elseif(isset($atts[0][1])){ //id is given via shorthand notation $atts = [["class", "id"], "att1" => "value1", ...]
 					$id = $atts[0][1];
 				}
 				else { // we have to create an id
@@ -488,13 +487,19 @@
 			
 			$atts["name"] = $name;
 			$select = $this->add($node, "select", "", $atts);
+			/* Here we check if the $select_options are given as ["option_value_1", "option_value_2", ...]
+			or [["option_value_1", "option_text_1"], ["option_value_2", "option_text_2"], ...]			
+			*/
+			if(count(array_filter($select_options, "is_array")) != count($select_options)){ // i.e. not all elements are arrays
+				$select_options = array_map(function($v){return [$v];}, $select_options);
+			}
 			$select_array = array();
 			foreach($select_options as $option){
 				
 				// given as [option_text, option_value, atts]. If option_value is an empty string, it is assumed to be equal option_text
 				$option_text = $option[0];
-				$option_value = (isset($option[1]) &&  $option[1] != "") ? $option[1] : $option_text;
-				$option_atts = (isset($option[2])) ? $option[2] : ["value" => $option_value];
+				$option_value = (isset($option[1]) &&  $option[1] !== "") ? $option[1] : $option_text;
+				$option_atts = (isset($option[2])) ? $option[2] : ["value" => $option_value, "data-column" => $option_value];
 				
 				$is_selected = false;
 				if($option_value == $selected){
@@ -541,6 +546,7 @@
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
 			$common_atts = $atts;
+			$col_name = $name;
 			$name = $name . "_" . rand(0,9999);
 			$i = 0;
 			foreach($select_options as $option_text => $option_value){
@@ -556,6 +562,7 @@
 					$option_atts[] = "checked";
 				}
 				$option_atts["value"] = $option_value;
+				$option_atts["data-column"] = $col_name;
 				$atts = array_merge($common_atts, $option_atts);
 				$radio_input[] = $this->addInput($node, [$name, $option_value], "radio", $atts);
 				$this->add($node, "br");
@@ -1084,7 +1091,7 @@
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
 			$ignore = $options["ignore"];
-			$data_types = $options["data_types"];
+			$data_types = $this->arrayMultiFlip($options["data_types"]);
 			$select_options = $options["select_options"];
 			$header_row = $options["header"];
 			
@@ -1199,7 +1206,7 @@
 			*
 			* @return [type] [name] [description]
 		*/
-		private function createOptions($input_array)
+		private function arrayMultiFlip($input_array)
 		{
 			$callback = function($key, $value){
 				return array_fill_keys($value, $key);
@@ -1212,4 +1219,4 @@
 				return [];
 			}
 		}
-	}																																																
+	}																																																	
