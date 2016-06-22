@@ -10,6 +10,14 @@
 		}
 	}
 	
+	function getSettings($file = "settings.json"){
+		$json_string = file_get_contents($file);
+		if(!$json_string){
+			throw new \Exception("The file $file could not be read or found!");
+		}
+		return json_decode($json_string, true);
+	}
+	
 	/**
 		* [Summary].
 		*
@@ -22,21 +30,21 @@
 	
 	function updateAllFromRepo()
 	{
-		if(is_readable("config.ini") && is_readable("includables.ini")){
-			$config_array = parse_ini_file("config.ini", true);
+		$config_array = getSettings();
+		if(is_readable("includables.ini")){
+			
 			$repo_files = parse_ini_file("includables.ini", true);
 			$repo_files = $repo_files["repo_files"];
 			
-			if(isset($config_array["autoload"]["update"]) && trim($config_array["autoload"]["update"]) != ""){
-				$files_to_update = explode(",", $config_array["autoload"]["update"]);
-				array_walk($files_to_update, "trim");
-				
-				foreach($files_to_update as $file_shortcut){
-					$file_variables = explode(",", $repo_files[$file_shortcut]);
-					$file_variables = array_map("trim", $file_variables);
-					updateFileFromRepo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
-				}
+			$files_to_update = $config_array["autoload"]["update"] ?? [];
+			array_walk($files_to_update, "trim");
+			
+			foreach($files_to_update as $file_shortcut){
+				$file_variables = explode(",", $repo_files[$file_shortcut]);
+				$file_variables = array_map("trim", $file_variables);
+				updateFileFromRepo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
 			}
+			
 		}
 	}
 	
@@ -64,7 +72,7 @@
 					$error = "The function inc() provided in autoload.php can only be used for php-files. You provided '." . $ext . "'";
 				}
 				else{ // e.g. "sql", a possible abbreviation given in includables.ini
-					if($includables != false){ // includables.ini does exist and creates no errors
+					if($includables){ // includables.ini does exist and creates no errors
 						$is_repo = isset($includables["repo_files"][$inc]);
 						$is_php_local = isset($includables["php_local"][$inc]);
 						

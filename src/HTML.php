@@ -381,6 +381,36 @@
 			* [Summary].
 			*
 			* [Description]
+			*
+			* @param [Type] $[Name] [Argument description]
+			[["atts" => [], "text" => "Food", "children" => [], "value" => ""], [], []]
+			*
+			* @return [type] [name] [description]
+		*/
+		public function addNestedList($node, $list, $atts = [], $with_input = false)
+		{
+			$ul = $this->add($node, "ul", "", $atts);
+			foreach($list as $element){
+				$text = $element["text"];
+				$local_atts = $element["atts"] ?? [];
+				$element_id = $local_atts["data-id"] ?? false;
+				$paranthesis = $element_id ? "($element_id) " : "";
+				$li = $this->add($ul, "li", $paranthesis . $element["text"], $local_atts);
+				
+				$children = $element["children"] ?? [];
+				if(count($children) > 0){
+					$this->addNestedList($li, $children, $local_atts, $with_input);
+				}
+				elseif($with_input) {
+					$this->add($li, "input", "", ["value" => $element["value"]]);
+				}
+			}
+		}
+		
+		/**
+			* [Summary].
+			*
+			* [Description]
 			
 			* @param [Type] $[Name] [Argument description]
 			*
@@ -468,38 +498,35 @@
 		*/ 
 		public function addSelect()
 		{
-			$def = ["node" => null, "name" => null, "select_options" => array() , "selected" => null, "atts" => array()];
+			$def = ["node" => null, "label_and_name" => null, "select_options" => array() , "selected" => null, "atts" => array()];
 			extract($this->prepareForExtraction($def, func_get_args()));
-			if(is_array($name) && count($name) == 2){
-				$label = $name[1];
-				$name = $name[0];
-				if(isset($atts["id"])){ //id already exists
-					$id = $atts["id"];
-				}
-				elseif(isset($atts[0][1])){ //id is given via shorthand notation $atts = [["class", "id"], "att1" => "value1", ...]
-					$id = $atts[0][1];
-				}
-				else { // we have to create an id
-					$id = $name . "_" . rand(0,999);
-				}
+			if(is_array($label_and_name)){
+				$name = $label_and_name[0];
+				$label = $label_and_name[1] ?? $name;
+				$id = $name . "_" . rand(0,999);
+				$id = $atts[0][1] ?? $id;
+				$id = $atts["id"] ?? $id;
 				$this->add($node, "label", $label, ["for" => $id]);
+				$atts["id"] = $id;
+			}
+			else {
+				$name = $label_and_name;
 			}
 			
 			$atts["name"] = $name;
+			
 			$select = $this->add($node, "select", "", $atts);
 			/* Here we check if the $select_options are given as ["option_value_1", "option_value_2", ...]
-			or [["option_value_1", "option_text_1"], ["option_value_2", "option_text_2"], ...]			
+				or [["option_text_1", "option_value_1"], ["option_text_2", "option_value_2"], ...]			
 			*/
-			if(count(array_filter($select_options, "is_array")) != count($select_options)){ // i.e. not all elements are arrays
-				$select_options = array_map(function($v){return [$v];}, $select_options);
-			}
+			$select_options = array_map(function($v){return (array) $v;}, $select_options); // ensuring that all elements are arrays
+			
 			$select_array = array();
 			foreach($select_options as $option){
-				
 				// given as [option_text, option_value, atts]. If option_value is an empty string, it is assumed to be equal option_text
 				$option_text = $option[0];
-				$option_value = (isset($option[1]) &&  $option[1] !== "") ? $option[1] : $option_text;
-				$option_atts = (isset($option[2])) ? $option[2] : ["value" => $option_value, "data-column" => $option_value];
+				$option_value = $option[1] ?? $option_text;
+				$option_atts = $option[2] ?? ["value" => $option_value, "data-column" => $name];
 				
 				$is_selected = false;
 				if($option_value == $selected){
@@ -1219,4 +1246,4 @@
 				return [];
 			}
 		}
-	}																																																	
+	}																																																										
