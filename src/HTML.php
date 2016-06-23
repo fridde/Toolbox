@@ -514,6 +514,7 @@
 			}
 			
 			$atts["name"] = $name;
+			$atts["data-column"] = $name;
 			
 			$select = $this->add($node, "select", "", $atts);
 			/* Here we check if the $select_options are given as ["option_value_1", "option_value_2", ...]
@@ -526,7 +527,7 @@
 				// given as [option_text, option_value, atts]. If option_value is an empty string, it is assumed to be equal option_text
 				$option_text = $option[0];
 				$option_value = $option[1] ?? $option_text;
-				$option_atts = $option[2] ?? ["value" => $option_value, "data-column" => $name];
+				$option_atts = $option[2] ?? ["value" => $option_value];
 				
 				$is_selected = false;
 				if($option_value == $selected){
