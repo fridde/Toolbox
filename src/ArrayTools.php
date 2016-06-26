@@ -1,18 +1,20 @@
 <?php 
 	
 	namespace Fridde;
-	/**
-		* SUMMARY OF add_header
-		*
-		* DESCRIPTION
-		*
-		* @param TYPE ($array, $header) ARGDESCRIPTION
-		*
-		* @return TYPE NAME DESCRIPTION
-	*/
 	
 	class ArrayTools
 	{
+		
+		public $Array;
+		
+		public function __construct ($array = []){
+			$this->Array = $array;
+		}
+		
+		public function __invoke()
+		{
+			return $this->Array;
+		}
 		
 		function add_header($array, $header)
 		{
@@ -345,46 +347,35 @@
 			fpassthru($f);
 		}
 		/**
-			* SUMMARY OF array_select_where
+			* SUMMARY OF where
 			*
 			* DESCRIPTION
 			*
-			* @param TYPE ($array, $criteria, $headers = "all", $onlyFirst = FALSE) ARGDESCRIPTION
+			* @param array $criteria ["column", "value"] or ["column", "=", "value"] 
 			*
 			* @return TYPE NAME DESCRIPTION
 		*/
-		function array_select_where($array, $criteria, $headers = "all", $onlyFirst = FALSE)
+		public function where()
 		{
-			
-			$returnArray = array();
-			foreach($array as $index => $row){
-				$rowIncluded = TRUE;
-				
-				foreach($criteria as $criteriumToCheck => $valueToCheck){
-					if(strtolower(substr($valueToCheck, 0, 4)) == "not:"){
-						$valueToCheck = substr($valueToCheck, 4);
-						if($row[$criteriumToCheck] == $valueToCheck){
-							$rowIncluded = FALSE;
-						}
-						
-						} else {
-						if($row[$criteriumToCheck] != $valueToCheck){
-							$rowIncluded = FALSE;
-						}
-					}
-				}
-				if($rowIncluded){
-					$returnArray[$index] = $row;
-				}
+			$c = func_get_args();
+			if(count($c) == 2){
+				$c = [$c[0], "=", $c[1]];
 			}
-			
-			if($onlyFirst){
-				$returnValue = reset($returnArray);
-				} else {
-				$returnValue = $returnArray;
-			}
-			
-			return $returnValue;
+			$compare = function($v) use ($c){
+				switch($c[1]){
+					case "=":
+					return $v[$c[0]] == $c[2];
+					break;
+					case "in":
+					return in_array($v[$c[0]], $c[2]);
+					break;
+					
+					default:
+					return eval('return("' . $v[$c[0]] . '" ' . $c[1] . ' "' . $c[2] . '");');					
+				}
+			};
+			$this->Array = array_filter($this->Array, $compare);
+			return $this;
 		}
 		/**
 			* SUMMARY OF array_choose_columns
@@ -1153,4 +1144,4 @@
 			
 			return $array;
 		}
-	}	
+	}								
