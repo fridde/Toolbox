@@ -5,28 +5,33 @@
 	{
 		public $conn_settings;
 		public $file_name;
+		public $configuration_file = "settings.toml";
 		
-		public function __construct($config_file = "settings.json"){
-			$this->setConfiguration($config_file);
+		public function __construct(){
+			$this->setConfiguration();
 			$c = $this->conn_settings;
 			$this->file_name = $c["db_name"] . ".sql";
 			$this->connection = new \mysqli($c["db_host"], $c["db_username"], $c["db_password"], $c["db_name"]);
 			parent::__construct($this->connection);
 		}
 		
-		private function setConfiguration($config_file)
+		private function setConfiguration()
 		{
-			if(is_readable($config_file)){
-				$configuration = json_decode(file_get_contents($config_file), true);
-				if(isset($configuration["Connection_Details"])){
-					$this->conn_settings = $configuration["Connection_Details"];
+			
+			$file_name = $this->configuration_file;
+			$toml_class = "Yosymfony\Toml\Toml";
+			if(is_readable($file_name)){
+				if(class_exists($toml_class)){
+					$parseFunction = $toml_class . "::Parse";
+					$local_conn_settings = $parseFunction($file_name);
+					$this->conn_settings = $local_conn_settings["Connection_Details"];
 				}
 				else {
-					throw new \Exception("No connection details found in config-file");
+					throw new \Exception("Tried to parse a toml-configuration file without a parser class defined.");
 				}
 			}
 			else {
-				throw new \Exception("No valid ". $config_file . " was found.");				
+				throw new \Exception("File <" . $file_name . "> not readable or doesn't exist.");
 			}
 		}
 		
@@ -42,4 +47,4 @@
 			var_dump($result);
 		}
 		
-	}					
+	}						

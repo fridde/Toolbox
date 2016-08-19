@@ -5,11 +5,11 @@
 	class SQL extends \PHPixie\Database
 	{
 		private $settings;
-		public $settings_file = "settings.json";
+		public $settings_file = "settings.toml";
 		public $conn;
 		public $query;
 		public $table_name;
-
+		
 		
 		function __construct ()
 		{
@@ -21,19 +21,25 @@
 		
 		public function setConfiguration()
 		{
-			if(is_readable($this->settings_file)){
-				$settings = json_decode(file_get_contents($this->settings_file), true);
-
-
-				$det = $settings["Connection_Details"] ?? false;
-				if(!$det) {
-
-
-					throw new \Exception("No connection details found in settings-file");
+			
+			$file_name = $this->settings_file;
+			$toml_class = "Yosymfony\Toml\Toml";
+			if(is_readable($file_name)){
+				if(class_exists($toml_class)){
+					$parseFunction = $toml_class . "::Parse";
+					$settings = $parseFunction($file_name);
+				}
+				else {
+					throw new \Exception("Tried to parse a toml-configuration file without a parser class defined.");
 				}
 			}
 			else {
-				throw new \Exception("No valid settings.json was found.");				
+				throw new \Exception("File <" . $file_name . "> not readable or doesn't exist.");
+			}
+			
+			$det = $settings["Connection_Details"] ?? false;
+			if(!$det){
+				throw new \Exception("No connection details found in the configuration file");
 			}
 			$conn_string_default = "mysql:host=" . $det["db_host"] . ";dbname=" . $det["db_name"];
 			$conn_string_info = "mysql:host=" . $det["db_host"] . ";dbname=INFORMATION_SCHEMA";
