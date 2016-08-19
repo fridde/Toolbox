@@ -4,33 +4,36 @@
 	
 	class SQL extends \PHPixie\Database
 	{
-		private $configuration;
+		private $settings;
+		public $settings_file = "settings.json";
 		public $conn;
 		public $query;
 		public $table_name;
-		public $config_file = "config.ini";
+
 		
 		function __construct ()
 		{
 			$this->setConfiguration();
 			$slice = new \PHPixie\Slice();
-			parent::__construct($slice->arrayData($this->configuration));
+			parent::__construct($slice->arrayData($this->settings));
 			$this->conn = $this->get("default");								
 		}
 		
 		public function setConfiguration()
 		{
-			if(is_readable($this->config_file)){
-				$configuration = parse_ini_file($this->config_file, TRUE);
-				if(isset($configuration["Connection_Details"])){
-					$det = $configuration["Connection_Details"];
-				}
-				else {
-					throw new \Exception("No connection details found in config-file");
+			if(is_readable($this->settings_file)){
+				$settings = json_decode(file_get_contents($this->settings_file), true);
+
+
+				$det = $settings["Connection_Details"] ?? false;
+				if(!$det) {
+
+
+					throw new \Exception("No connection details found in settings-file");
 				}
 			}
 			else {
-				throw new \Exception("No valid config.ini was found.");				
+				throw new \Exception("No valid settings.json was found.");				
 			}
 			$conn_string_default = "mysql:host=" . $det["db_host"] . ";dbname=" . $det["db_name"];
 			$conn_string_info = "mysql:host=" . $det["db_host"] . ";dbname=INFORMATION_SCHEMA";
@@ -40,8 +43,9 @@
 			$settings_info["connection"] = $conn_string_info;
 			$config = ["default" => $settings_default, "info" => $settings_info];
 			$this->database = $det["db_name"];
-			$this->setTable($det["default_table"]);
-			$this->configuration = $config;
+			$def_table = $det["default_table"] ?? false;
+			$this->setTable($def_table);
+			$this->settings = $config;
 		}
 		
 		public function setTable($table)
@@ -205,7 +209,7 @@
 		
 		private function defineQuery($type)
 		{
-			if(isset($this->table_name)){
+			if($this->table_name){
 				$query_name = $type . "Query";
 				$this->query = $this->conn->$query_name()->table($this->table_name);				
 			}

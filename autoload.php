@@ -1,21 +1,54 @@
 <?php 
 	
+	$autoload_path = "vendor/autoload.php";
+	if(is_readable($autoload_path)){
+		include($autoload_path);
+	}
+	
+	
 	function activateDebug()
 	{
 		$GLOBALS["debug"] = true;
 		error_reporting(E_ALL);
 		ini_set('display_errors', '1');
+		
 		function print_r2($var){
 			echo "<pre>"; print_r($var); echo "</pre>";
 		}
 	}
 	
-	function getSettings($file = "settings.json"){
-		$json_string = file_get_contents($file);
-		if(!$json_string){
-			throw new \Exception("The file $file could not be read or found!");
+	function getSettings($file = "settings.toml"){
+		
+		$settings = false;
+		$ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+		if (!is_readable($file)){
+			throw new \Exception("The file " . $file . " is not readable or doesn't exist.");
 		}
-		return json_decode($json_string, true);
+		$toml_class = "Yosymfony\Toml\Toml";
+		if ($ext == "toml"){
+			if (class_exists($toml_class)){
+				$parseFunction = $toml_class . "::Parse";
+				$settings = $parseFunction($file);
+			}
+			else {
+				throw new \Exception("Tried to parse a toml-configuration file without a parser class defined.");
+			}
+		}
+		elseif ($ext == "json"){
+			$json_string = file_get_contents($file);
+			if (!$json_string){
+				throw new \Exception("The file $file could not be read or found!");
+			}
+			$settings = json_decode($json_string, true);
+		}
+		elseif ($ext == "ini"){
+			$settings = parse_ini_file($file, true);
+		}
+		else {
+			throw new \Exception("The function getSettings has no implementation for the file extension <" . $ext . ">");
+		}
+		
+		return $settings; 
 	}
 	
 	/**
@@ -31,20 +64,21 @@
 	function updateAllFromRepo()
 	{
 		$config_array = getSettings();
-		if(is_readable("includables.ini")){
+		$files_to_update = $config_array["autoload"]["update"] ?? [];
+		if (is_readable("includables.toml") && $files_to_update){
 			
-			$repo_files = parse_ini_file("includables.ini", true);
-			$repo_files = $repo_files["repo_files"];
+			$repos = getSettings("includables.toml");
+			$repos = $repos["repos"];
 			
-			$files_to_update = $config_array["autoload"]["update"] ?? [];
-			array_walk($files_to_update, "trim");
-			
-			foreach($files_to_update as $file_shortcut){
-				$file_variables = explode(",", $repo_files[$file_shortcut]);
-				$file_variables = array_map("trim", $file_variables);
-				updateFileFromRepo($file_variables[3], $file_variables[0], $file_variables[1], $file_variables[2]);
+			foreach($files_to_update as $file_shortcut){				
+				foreach($repos as $repo_name => $repo_array){
+					$path = $repo_array["paths"][$file_shortcut] ?? null;
+					if($path){
+						$user = $repo_array["user"];
+						updateFileFromRepo($path, $user, $repo_name);
+					}
+				}				
 			}
-			
 		}
 	}
 	
@@ -58,34 +92,35 @@
 		* @return [type] [name] [description]
 	*/
 	
-	function inc($inclusionString, $return = FALSE){
+	function inc($inclusionString, $return = false){
 		$inclusionArray = array_map("trim", explode(",", $inclusionString));
 		$includables = getIncludables();
 		
 		foreach($inclusionArray as $inc){
 			$ext = pathinfo($inc, PATHINFO_EXTENSION);
-			if($ext == "php"){ // e.g. "myCustomFolder/myCustomFile.php"
+			if ($ext == "php"){ // e.g. "myCustomFolder/myCustomFile.php"
 				include($inc);
 			}
 			else { 
-				if($ext != ""){	// e.g. "jQuery.min.js"
+				if ($ext != ""){	// e.g. "jQuery.min.js"
 					$error = "The function inc() provided in autoload.php can only be used for php-files. You provided '." . $ext . "'";
 				}
-				else{ // e.g. "sql", a possible abbreviation given in includables.ini
-					if($includables){ // includables.ini does exist and creates no errors
-						$is_repo = isset($includables["repo_files"][$inc]);
+				else { // e.g. "sql", a possible abbreviation given in includables.toml
+					if ($includables){ // includables.toml does exist and creates no errors
+						$repo_info = identifyRepo($includables, $inc);
+						//$is_repo = isset($includables["repos"][$inc]);
 						$is_php_local = isset($includables["php_local"][$inc]);
 						
-						if($is_repo){
-							$path = $includables["repo_files"][$inc];
-							$repo_parts = array_map("trim", explode(",", $path));
-							$path = pathinfo($repo_parts[3], PATHINFO_FILENAME) . ".php";
-							if(!is_readable($path)){
-								updateFileFromRepo($repo_parts[3], $repo_parts[0], $repo_parts[1], $repo_parts[2]);
+						if ($repo_info){
+							list($repo_user, $repo_name) = $repo_info;
+							$path = $includables["repos"][$repo_name][$inc];
+							if (!is_readable($path)){
+								// file, user, repo
+								updateFileFromRepo($path, $repo_user, $repo_name);
 							}
 							include($path);
 						}
-						else if($is_php_local){
+						else if ($is_php_local){
 							$path = $includables["php_local"][$inc];
 							include($path);
 						} 
@@ -93,13 +128,26 @@
 							$error = "The function inc() was provided with a nonexisting abbreviation (among php-files): " . $inc;
 						}
 					}
-					else { 
-						$error = "The function inc() was provided with an abbreviation, but no corresponding includables.ini within the same folder.";
-					}
 				}
 			}
-			if(isset($error)){
+			if (isset($error)){
 				throw new Exception($error);
+			}
+		}
+	}
+	
+	/* returns an array containing user and repo name if defined as a repo file in includables.toml
+		returns false otherwise
+	*/
+	function identifyRepo($includables, $abbreviation)
+	{
+		foreach($includables["repos"] as $repo_name => $repo_array){
+			if(isset($repo_array["paths"][$abbreviation])){
+				$repo_info = [$repo_array["user"], $repo_name];
+				return $repo_info;
+			}
+			else {
+				return false;
 			}
 		}
 	}
@@ -109,8 +157,7 @@
 		$local_file_name = "";
 		$url = "https://raw.githubusercontent.com/";
 		$url .= $user . "/" . $repo ."/master/";
-		if($folder != ""){
-			$url .= $folder . "/";
+		if ($folder != ""){
 			$local_file_name .= $folder . "/";
 			if (!file_exists($folder)) {
 				mkdir($folder, 0777, true);
@@ -151,7 +198,7 @@
 	
 	function isYoungerThan($time, $age, $unit = "s"){
 		
-		$conversion_factors = array("s" => 1, "min" => 60, "h" => 3600, "d" => 86400);
+		$conversion_factors = ["s" => 1, "min" => 60, "h" => 3600, "d" => 86400];
 		
 		$now = strtotime("now");
 		$old_time = strtotime($time);
@@ -159,24 +206,20 @@
 		return ($diff < $age);
 	}
 	
-	function getIncludables($file = "includables.ini")
+	function getIncludables($file = "includables.toml")
 	{
-		if(is_readable($file)){
-			$inc_ini_array = parse_ini_file("includables.ini", true);
-			$check_array = array();
-			
-			foreach($inc_ini_array as $type => $entries){
-				foreach($entries as $abbreviation => $filepath){
-					$check_array[$type . ":" . $abbreviation] = "";
-					if(isset($check_array[$abbreviation])){
-						throw new Exception("includables.ini has duplicate keys! Abbreviation could not be uniquely resolved. Duplicate key: " .  $key);
-						return false;
-					}
+		$includables = getSettings($file);
+		$check_array = [];
+		
+		// doublecheck to ensure the abbreviation is uniquely defined 
+		foreach($includables as $type => $entries){
+			foreach($entries as $abbreviation => $filepath){
+				$check_array[$type . ":" . $abbreviation] = "";
+				if (isset($check_array[$abbreviation])){
+					throw new Exception("includables.ini has duplicate keys! Abbreviation could not be uniquely resolved. Duplicate key: " .  $key);
+					return false;
 				}
 			}
-			return $inc_ini_array;
 		}
-		else { //file not readable
-			return false;
-		}
+		return $includables;
 	}

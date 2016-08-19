@@ -1,5 +1,6 @@
 sandbox.php
 config.ini
+settings.toml
 COMMIT_EDITMSG
 vendor/
 test_*

@@ -485,10 +485,13 @@
 			}
 			
 			$p = $args[1] ?? ""; // prefix
+			
 			$dont_translate = array_filter($translation_array, "is_numeric" , ARRAY_FILTER_USE_KEY);
-			array_walk($dont_translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$v] ?? "";}, $p);
+
 			$translate = array_diff_assoc($translation_array, $dont_translate);
-			array_walk($translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$k] ?? "";}, $p);
+			
+			array_walk($dont_translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$v] ?? null;}, $p);
+			array_walk($translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$k] ?? null;}, $p);
 		}
 		
 		public static function buildTreefromSettingsTable(&$rows, $parentId = 0, $type = "plain") 

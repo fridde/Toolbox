@@ -319,6 +319,7 @@
 			return $button;
 		}
 		
+		
 		public function addDiv()
 		{
 			$def = ["node" => null, "class" => "", "atts" => array()];
@@ -1114,7 +1115,7 @@
 		*/
 		public function addEditableTable()
 		{
-			$def_options = ["ignore" => [], "data_types" => [], "select_options" => [], "table" => "undefined_table", "header" => null];
+			$def_options = ["ignore" => [], "data_types" => [], "select_options" => [], "table" => "undefined_table", "header" => [], "extra_columns" => null];
 			$def = ["node" => null, "array" => [], "options" => $def_options, "atts" => []];
 			extract($this->prepareForExtraction($def, func_get_args()));
 			
@@ -1130,15 +1131,30 @@
 			$thead_row = $this->add($thead, "tr");
 			$tbody = $this->add($table, "tbody");
 			
-			if(!(isset($header_row) && is_array($header_row))){
-				if(count($array) > 0){
-					$first_row = reset($array);
-					$header_row = array_combine(array_keys($first_row), array_keys($first_row));
-				}
-				else {
-					exit("This table is empty");
-				}
+
+			$rand = rand(0,9999);
+			$special_columns["left_" . $rand] = $options["extra_columns"]["left"] ?? null;
+			$special_columns["right_" . $rand] = $options["extra_columns"]["right"] ?? null;
+			
+			if(count($header_row) == 0 && count($array) > 0){
+				$first_row = reset($array);
+				$header_row = array_combine(array_keys($first_row), array_keys($first_row));
+
+
+
+
 			}
+			
+			foreach($special_columns as $id => $col_type){
+				if(!is_null($col_type)){
+					if(substr($id,0,4) == "left"){
+						$header_row = [$id => ""] + $header_row;
+					}
+					else{
+						$header_row = $header_row + [$id => ""];
+					}
+				}
+			}			
 			
 			foreach($header_row as $sql_column_name => $display_name){
 				if(in_array($sql_column_name, $ignore)){
@@ -1150,15 +1166,23 @@
 			}
 			foreach($array as $row){
 				$tr = $this->add($tbody, "tr", "", ["data-id" => $row["id"]]);
-				foreach($header_row as $sql_column_name => $display_name){
-					$column = $sql_column_name;
-					$cell = $row[$sql_column_name];
-					
-					$atts = ["data-column" => $column, "value" => $cell];
-					
-					
-					$td = $this->add($tr, "td");
-					$data_type = (isset($data_types[$column])) ? $data_types[$column] : "text";
+				foreach($header_row as $column => $display_name){
+					$special_column_types = $special_columns[$column] ?? false;
+					if($special_column_types){
+						$data_type = "special_column";
+						$td = $this->add($tr, "td", "", [["special-column"]]);
+					}
+					else {
+						$cell = $row[$column];
+
+						$data_type = $data_types[$column] ?? "text";
+						
+						$atts = ["data-column" => $column, "value" => $cell];
+
+
+						$td = $this->add($tr, "td");
+
+					}
 					
 					switch($data_type){
 						case "date":
@@ -1215,11 +1239,31 @@
 						case "text":
 						$this->addInput($td, $column, "text", $atts);
 						break;
+						
+						case "special_column":
+						$this->addSpecialCell($td, $special_column_types);
+						break;
 					}
 				}
 			}
-			
-			
+
+
+		}
+		
+		public function addSpecialCell($node, $special_column_types)
+		{
+			foreach($special_column_types as $c_type){
+				switch($c_type)
+				{
+					case "checkbox":
+					$this->add($node, "input", "", [["batch"], "type" => "checkbox"]);
+					break;
+					
+					case "delete":
+					$this->add($node, "button", "Delete me", [["delete-btn"]]);
+					break;
+				}
+			}
 		}
 		
 		
@@ -1247,4 +1291,5 @@
 				return [];
 			}
 		}
-	}																																																										
+
+	}																																																																											

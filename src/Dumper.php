@@ -6,7 +6,7 @@
 		public $conn_settings;
 		public $file_name;
 		
-		public function __construct($config_file = "config.ini"){
+		public function __construct($config_file = "settings.json"){
 			$this->setConfiguration($config_file);
 			$c = $this->conn_settings;
 			$this->file_name = $c["db_name"] . ".sql";
@@ -17,7 +17,7 @@
 		private function setConfiguration($config_file)
 		{
 			if(is_readable($config_file)){
-				$configuration = parse_ini_file($config_file, TRUE);
+				$configuration = json_decode(file_get_contents($config_file), true);
 				if(isset($configuration["Connection_Details"])){
 					$this->conn_settings = $configuration["Connection_Details"];
 				}
