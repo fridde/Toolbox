@@ -70,10 +70,19 @@
 		
 		public function getIncludables(){
 			
-			$includables = false;
-			$file_name = "includables.ini";
+			$file_name = "includables.toml";
+			$toml_class = "Yosymfony\Toml\Toml";
 			if(is_readable($file_name)){
-				$includables = parse_ini_file($file_name, true);
+				if(class_exists($toml_class)){
+					$parseFunction = $toml_class . "::Parse";
+					$includables = $parseFunction($file_name);
+				}
+				else {
+					throw new \Exception("Tried to parse a toml-configuration file without a parser class defined.");
+				}
+			}
+			else {
+				throw new \Exception("File <" . $file_name . "> not readable or doesn't exist.");
 			}
 			return $includables;
 		}
@@ -1131,7 +1140,7 @@
 			$thead_row = $this->add($thead, "tr");
 			$tbody = $this->add($table, "tbody");
 			
-
+			
 			$rand = rand(0,9999);
 			$special_columns["left_" . $rand] = $options["extra_columns"]["left"] ?? null;
 			$special_columns["right_" . $rand] = $options["extra_columns"]["right"] ?? null;
@@ -1139,10 +1148,10 @@
 			if(count($header_row) == 0 && count($array) > 0){
 				$first_row = reset($array);
 				$header_row = array_combine(array_keys($first_row), array_keys($first_row));
-
-
-
-
+				
+				
+				
+				
 			}
 			
 			foreach($special_columns as $id => $col_type){
@@ -1174,14 +1183,14 @@
 					}
 					else {
 						$cell = $row[$column];
-
+						
 						$data_type = $data_types[$column] ?? "text";
 						
 						$atts = ["data-column" => $column, "value" => $cell];
-
-
+						
+						
 						$td = $this->add($tr, "td");
-
+						
 					}
 					
 					switch($data_type){
@@ -1246,8 +1255,8 @@
 					}
 				}
 			}
-
-
+			
+			
 		}
 		
 		public function addSpecialCell($node, $special_column_types)
@@ -1291,5 +1300,5 @@
 				return [];
 			}
 		}
-
-	}																																																																											
+		
+	}																																																																														

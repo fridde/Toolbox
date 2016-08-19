@@ -27,6 +27,9 @@
 		
 		public function setConfiguration($conf)
 		{
+			/* TODO: Refactor to match the new system using toml-files
+			
+			
 			if(is_readable($this->config_file)){
 				$ini = parse_ini_file($this->config_file, TRUE);
 				$this->api = (isset($conf["api"])) ? $conf["api"] : $this->api ;
@@ -45,6 +48,8 @@
 			else {
 				throw new \Exception("No valid " . $this->config_file . " was found.");				
 			}
+			*/
+			throw new \Exception("TODO: Refactor setConfiguration first!");
 		}
 		
 		public function send()

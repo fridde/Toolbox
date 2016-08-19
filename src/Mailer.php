@@ -5,7 +5,7 @@
 	class Mailer extends \PHPMailer\PHPMailer\PHPMailer
 	{
 		private $configuration;
-		public $configuration_file = "config.ini";
+		public $configuration_file = "settings.toml";
 		public $smtp_settings_index = "smtp_settings";
 		
 		function __construct ()
@@ -123,12 +123,20 @@
 		*/ 
 		public function setConfiguration()
 		{
-			$configuration = false;
 			$file_name = $this->configuration_file;
+			$toml_class = "Yosymfony\Toml\Toml";
 			if(is_readable($file_name)){
-				$configuration = parse_ini_file($file_name, true);
+				if(class_exists($toml_class)){
+					$parseFunction = $toml_class . "::Parse";
+					$this->configuration = $parseFunction($file_name);
+				}
+				else {
+					throw new \Exception("Tried to parse a toml-configuration file without a parser class defined.");
+				}
 			}
-			$this->configuration = $configuration;
+			else {
+				throw new \Exception("File <" . $file_name . "> not readable or doesn't exist.");
+			}
 			return $configuration;
 		} 
 		
@@ -150,4 +158,4 @@
 				echo "Message sent!";
 			}
 		}
-	}																							
+	}																								
