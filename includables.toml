@@ -1,69 +1,68 @@
 # remote php files that have to be copied to the local server first 
-# given as "abbreviation = local-folder-to-copy-to, file-name"
+# given as 'abbreviation = local-folder-to-copy-to, file-name'
 # whitespace between values and comma will be trimmed
 [repos.toolbox]
-user = fridde
+user = 'fridde'
 
-[repos.toolbox.paths]
-auto = "autoload.php"
-inc = "includables.toml"
-array = "src/ArrayTools.php"
-cook = "src/Cookie.php"
-dump = "src/Dumper.php"
-html = "src/HTML.php"
-ini = "src/IniFile.php"
-mail = "src/Mailer.php"
-osd = "src/OSD.php"
-sms = "src/SMS.php"
-sql = "src/SQL.php"
-util = "src/Utility.php"
-wc = "src/WordCounter.php"
+	[repos.toolbox.paths]
+	auto = 'autoload.php'
+	inc = 'includables.toml'
+	array = 'src/ArrayTools.php'
+	cook = 'src/Cookie.php'
+	dump = 'src/Dumper.php'
+	html = 'src/HTML.php'
+	mail = 'src/Mailer.php'
+	osd = 'src/OSD.php'
+	sms = 'src/SMS.php'
+	sql = 'src/SQL.php'
+	util = 'src/Utility.php'
+	wc = 'src/WordCounter.php'
 
 # local php files 
 [php_local]
-vendor = "vendor/autoload.php"
-100 = "inc/misc_functions"
-102 = "testing/testing_functions"
+vendor = 'vendor/autoload.php'
+100 = 'inc/misc_functions'
+102 = 'testing/testing_functions'
 
 # remote javascript files hosted by other servers 
 [js_remote]
-jquery = "//code.jquery.com/jquery-1.12.3.min.js"
-DT = "//cdn.datatables.net/1.10.11/js/jquery.dataTables.min.js"
-203 = "//cdn.datatables.net/responsive/1.0.1/js/dataTables.responsive.js"
-204 = "//cdn.datatables.net/tabletools/2.2.3/js/dataTables.tableTools.min.js"
-jqueryUI = "//code.jquery.com/ui/1.11.4/jquery-ui.min.js"
-206 = "//cdn.datatables.net/fixedheader/2.1.2/js/dataTables.fixedHeader.min.js"
-bs = "//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
-bsdate = "//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/js/bootstrap-datepicker.min.js"
+jquery = '//code.jquery.com/jquery-1.12.3.min.js'
+DT = '//cdn.datatables.net/1.10.11/js/jquery.dataTables.min.js'
+203 = '//cdn.datatables.net/responsive/1.0.1/js/dataTables.responsive.js'
+204 = '//cdn.datatables.net/tabletools/2.2.3/js/dataTables.tableTools.min.js'
+jqueryUI = '//code.jquery.com/ui/1.11.4/jquery-ui.min.js'
+206 = '//cdn.datatables.net/fixedheader/2.1.2/js/dataTables.fixedHeader.min.js'
+bs = '//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js'
+bsdate = '//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/js/bootstrap-datepicker.min.js'
 
 # local already existing javascript files 
 [js_local]
-natskol = "js/naturskolan.js"
-moment = "js/moment-with-locales.min.js"
-300 = "/lib/DataTables/extensions/Editor-1.3.3/js/dataTables.editor.js"
-301 = "/bostad/inc/datatables_init.js"
-302 = "/inc/datatables_init.js"
-init = "js/init.js"
-304 = "/inc/bootstrap-star-rating/js/star-rating.min.js"
-305 = "/inc/jquery.countdown.min.js"
-306 = "/inc/user_init.js"
+natskol = 'js/naturskolan.js'
+moment = 'js/moment-with-locales.min.js'
+300 = '/lib/DataTables/extensions/Editor-1.3.3/js/dataTables.editor.js'
+301 = '/bostad/inc/datatables_init.js'
+302 = '/inc/datatables_init.js'
+init = 'js/init.js'
+304 = '/inc/bootstrap-star-rating/js/star-rating.min.js'
+305 = '/inc/jquery.countdown.min.js'
+306 = '/inc/user_init.js'
 
 # remote css files 
 [css_remote]
-jqueryUI = "//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css"
-DTcss = "//cdn.datatables.net/1.10.11/css/jquery.dataTables.min.css"
-402 = "//cdn.datatables.net/fixedheader/2.1.2/css/dataTables.fixedHeader.css"
-403 = "//cdn.datatables.net/responsive/1.0.6/css/dataTables.responsive.css"
-404 = "//cdn.datatables.net/tabletools/2.2.4/css/dataTables.tableTools.css"
-bs = "//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
-bsTheme = "//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css"
-fAwe = "//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"
-bsdate = "//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/css/bootstrap-datepicker.min.css"
+jqueryUI = '//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css'
+DTcss = '//cdn.datatables.net/1.10.11/css/jquery.dataTables.min.css'
+402 = '//cdn.datatables.net/fixedheader/2.1.2/css/dataTables.fixedHeader.css'
+403 = '//cdn.datatables.net/responsive/1.0.6/css/dataTables.responsive.css'
+404 = '//cdn.datatables.net/tabletools/2.2.4/css/dataTables.tableTools.css'
+bs = '//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css'
+bsTheme = '//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css'
+fAwe = '//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css'
+bsdate = '//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/css/bootstrap-datepicker.min.css'
 
 # local already existing css-files
 [css_local]
-501 = "/lib/DataTables/extensions/TableTools/css/dataTables.tableTools"
-502 = "/lib/DataTables/extensions/Editor-1.3.3/css/dataTables.editor"
-503 = "/inc/stylesheet"
-504 = "/inc/bootstrap-star-rating/css/star-rating.min"
-natskol = "css/naturskolan.css"
+501 = '/lib/DataTables/extensions/TableTools/css/dataTables.tableTools'
+502 = '/lib/DataTables/extensions/Editor-1.3.3/css/dataTables.editor'
+503 = '/inc/stylesheet'
+504 = '/inc/bootstrap-star-rating/css/star-rating.min'
+natskol = 'css/naturskolan.css'

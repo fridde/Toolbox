@@ -158,7 +158,6 @@
 		$url = "https://raw.githubusercontent.com/";
 		$url .= $user . "/" . $repo ."/master/";
 		if ($folder != ""){
-			$local_file_name .= $folder . "/";
 			if (!file_exists($folder)) {
 				mkdir($folder, 0777, true);
 			}
