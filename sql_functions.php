@@ -1,5 +1,7 @@
 <?php
 	
+	// This file is deprecated and will be removed in the future. Use the class Fridde\SQL instead.
+	
 	/*
 		* Contains custom SQL-functions that use PDO
 		* assumes that a config.ini -file exists matching the template given in this folder

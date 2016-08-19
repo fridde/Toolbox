@@ -1,4 +1,6 @@
 <?php
+	
+	// This file is deprecated and will be removed in the future as soon as most dependent apps have been updated
 
 function inc($inclusionString, $debug = FALSE, $return = FALSE){
 
