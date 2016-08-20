@@ -487,44 +487,46 @@
 			$p = $args[1] ?? ""; // prefix
 			
 			$dont_translate = array_filter($translation_array, "is_numeric" , ARRAY_FILTER_USE_KEY);
-
+			
 			$translate = array_diff_assoc($translation_array, $dont_translate);
 			
 			array_walk($dont_translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$v] ?? null;}, $p);
 			array_walk($translate, function($v, $k, $p){$GLOBALS["$p$v"] = $_REQUEST[$k] ?? null;}, $p);
 		}
+	}
+	/* 
+		DEPRECATED METHODS
 		
 		public static function buildTreefromSettingsTable(&$rows, $parentId = 0, $type = "plain") 
         {
-            $branch = [];
-            $is_plain = $type == "plain";
-            foreach($rows as $key => &$row){
-                if($row["Parent"] == $parentId){
-                    $row_id = $row["id"];
-                    $row_value = $row["Value"];
-                    $new_row = ["text" => $row["Name"], "atts" => ["data-id" => $row_id], "value" => $row_value];
-                    $children = self::buildTreefromSettingsTable($rows, $row_id, $type);
-                    if($is_plain && count($children) > 0){
-                        $branch[$row["Name"]] = $children;
-					}
-                    elseif($is_plain) {
-                        $branch[$row["Name"]] = $row_value;
-					}
-                    else {
-                        $new_row["children"] = $children;
-                        $branch[] = $new_row;
-					}
-                    unset($rows[$key]);
-				}
-			}
-            return $branch;
+		$branch = [];
+		$is_plain = $type == "plain";
+		foreach($rows as $key => &$row){
+		if($row["Parent"] == $parentId){
+		$row_id = $row["id"];
+		$row_value = $row["Value"];
+		$new_row = ["text" => $row["Name"], "atts" => ["data-id" => $row_id], "value" => $row_value];
+		$children = self::buildTreefromSettingsTable($rows, $row_id, $type);
+		if($is_plain && count($children) > 0){
+		$branch[$row["Name"]] = $children;
+		}
+		elseif($is_plain) {
+		$branch[$row["Name"]] = $row_value;
+		}
+		else {
+		$new_row["children"] = $children;
+		$branch[] = $new_row;
+		}
+		unset($rows[$key]);
+		}
+		}
+		return $branch;
 		}
 		
         public static function settingsTableToJsonFile($settings_array, $file = "settings.json")
         {
-            $json_string = json_encode(self::buildTreefromSettingsTable($settings_array), JSON_PRETTY_PRINT);
-            $success = file_put_contents($file, $json_string);
-            return $success;
+		$json_string = json_encode(self::buildTreefromSettingsTable($settings_array), JSON_PRETTY_PRINT);
+		$success = file_put_contents($file, $json_string);
+		return $success;
 		}
-		
-	}																								
+	*/
